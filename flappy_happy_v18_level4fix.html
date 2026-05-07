@@ -1,0 +1,1773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flappy Happy — v18 level 4 fix build</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --sky-top: #7fb5ec;
+      --sky-mid: #bbdfff;
+      --sky-bottom: #eef8ff;
+      --panel-bg: rgba(255,255,255,0.18);
+      --panel-border: rgba(255,255,255,0.24);
+      --panel-soft: rgba(255,255,255,0.16);
+      --ink: #17324d;
+      --muted: rgba(23,50,77,0.76);
+      --accent: #d85733;
+      --accent-dark: #a9381f;
+      --sun: #ffd451;
+      --pill-text: #fff;
+    }
+    body.dark-mode {
+      --sky-top: #0f1730;
+      --sky-mid: #13203f;
+      --sky-bottom: #192a4f;
+      --panel-bg: rgba(8,14,30,0.45);
+      --panel-border: rgba(255,255,255,0.10);
+      --panel-soft: rgba(255,255,255,0.05);
+      --ink: #ecf2ff;
+      --muted: rgba(236,242,255,0.70);
+      --accent: #6f7cff;
+      --accent-dark: #4953c7;
+      --sun: #8ea4ff;
+      --pill-text: #f6f8ff;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-bottom) 100%);
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .shell { position: fixed; inset: 0; z-index: 5; pointer-events: none; padding: 14px; }
+    .panel {
+      width: min(500px, calc(100vw - 24px));
+      height: calc(100vh - 28px);
+      max-height: calc(100vh - 28px);
+      pointer-events: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-radius: 22px;
+      border: 1px solid var(--panel-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08)), var(--panel-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--ink);
+    }
+    .panel-header {
+      border-bottom: 1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+    }
+    .badge-title {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      border-radius: 999px;
+      padding: .32rem .72rem;
+      background: linear-gradient(180deg, var(--sun), #ffbf2f);
+      color: #5b3200;
+      font-weight: 700;
+    }
+    body.dark-mode .badge-title {
+      color: #0f1730;
+      background: linear-gradient(180deg, #c7d4ff, #879dff);
+    }
+    .subtitle { color: var(--muted); font-size: .82rem; }
+    .legend-box, .status-card, .save-card, .slider-card {
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: var(--panel-soft);
+      padding: .65rem .75rem;
+    }
+    .panel .card-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      gap: .75rem;
+    }
+    .controls-scroll { flex: 1 1 auto; min-height: 180px; max-height: none; overflow: auto; padding-right: .25rem; padding-bottom: .35rem; }
+    .controls-scroll::-webkit-scrollbar { width: 10px; }
+    .controls-scroll::-webkit-scrollbar-thumb { background: rgba(31,79,126,0.22); border-radius: 999px; }
+    .slider-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: .3rem;
+    }
+    .slider-label { color: var(--ink); font-weight: 700; line-height: 1.1; }
+    .slider-hint { color: var(--muted); font-size: .75rem; margin-top: .15rem; }
+    .value-pill {
+      min-width: 74px;
+      text-align: center;
+      border-radius: 999px;
+      padding: .22rem .52rem;
+      color: var(--pill-text);
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      font-weight: 700;
+      font-size: .78rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .form-range { height: 1.3rem; --pct: 50%; background: transparent; }
+    .form-range::-webkit-slider-runnable-track {
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--sun) 0%, #ffb432 var(--pct), rgba(255,255,255,0.82) var(--pct), rgba(255,255,255,0.55) 100%);
+    }
+    .form-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.92);
+      background: radial-gradient(circle at 35% 35%, #fff7df 0 25%, #ffd452 26% 70%, #f39b21 71% 100%);
+    }
+    .form-range::-moz-range-track { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.65); }
+    .form-range::-moz-range-progress { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--sun), #ffb432); }
+    .form-range::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.92);
+      background: radial-gradient(circle at 35% 35%, #fff7df 0 25%, #ffd452 26% 70%, #f39b21 71% 100%);
+    }
+    .btn-bird, .btn-cloud, .btn-sun, .btn-level {
+      font-weight: 700;
+      border-radius: 14px;
+      padding: .48rem .72rem;
+      font-size: .86rem;
+      border: none;
+    }
+    .btn-bird, .btn-level.active { background: linear-gradient(180deg, var(--accent), var(--accent-dark)); color: #fff; }
+    .btn-cloud, .btn-level {
+      background: rgba(255,255,255,0.72);
+      color: #23415e;
+      border: 1px solid rgba(255,255,255,0.7);
+    }
+    body.dark-mode .btn-cloud, body.dark-mode .btn-level {
+      background: rgba(255,255,255,0.10);
+      color: #e9efff;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .btn-sun { background: linear-gradient(180deg, #ffe07b, #ffbc30); color: #653600; }
+    .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+    .level-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+    .section-title { font-weight: 800; color: var(--ink); margin-bottom: .2rem; }
+    .section-sub { font-size: .74rem; color: var(--muted); margin-bottom: .45rem; }
+    .status-strong { font-weight: 800; }
+    .status-good { color: #1b7f43; }
+    .status-warn { color: #bf6517; }
+    body.dark-mode .status-good { color: #9cf0ae; }
+    body.dark-mode .status-warn { color: #ffd18a; }
+    .save-list { display: grid; gap: .45rem; max-height: 160px; overflow: auto; }
+    .save-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: .4rem;
+      align-items: center;
+      border-radius: 12px;
+      padding: .45rem;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .save-name { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .save-tag { font-size: .69rem; color: var(--muted); }
+    .tiny-btn {
+      padding: .28rem .55rem;
+      font-size: .78rem;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.72);
+      color: #23415e;
+    }
+    body.dark-mode .tiny-btn { background: rgba(255,255,255,0.10); color: #eef3ff; }
+    .tiny-btn.primary { background: linear-gradient(180deg, var(--accent), var(--accent-dark)); color: white; }
+    .save-inline { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem; align-items: center; }
+    .save-inline input {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.20);
+      background: rgba(255,255,255,0.72);
+      color: #18324e;
+      padding: .5rem .7rem;
+      outline: none;
+    }
+    body.dark-mode .save-inline input { background: rgba(255,255,255,0.10); color: #eef3ff; }
+    .canvas-hint {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 4;
+      color: rgba(255,255,255,0.9);
+      background: rgba(20,49,83,0.22);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: .55rem .9rem;
+      font-size: .78rem;
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+    .overlay {
+      position: fixed; inset: 0; z-index: 9; display: none; align-items: center; justify-content: center; padding: 18px;
+      background: rgba(8, 16, 32, 0.26); backdrop-filter: blur(6px);
+    }
+    .overlay.show { display: flex; }
+    .modal-card, .start-card {
+      pointer-events: auto; border-radius: 22px; border: 1px solid var(--panel-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08)), var(--panel-bg);
+      box-shadow: 0 18px 50px rgba(14,42,72,0.20), inset 0 1px 0 rgba(255,255,255,0.25);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--ink);
+    }
+    .start-card { width: min(780px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: hidden; }
+    .start-inner { padding: 22px; }
+    .start-hero { display: grid; grid-template-columns: 1.08fr .92fr; gap: 20px; align-items: center; }
+    .hero-birds { min-height: 220px; position: relative; border-radius: 22px; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.18); }
+    .hero-bird { position: absolute; font-size: 48px; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.16)); animation: glide 7s ease-in-out infinite; }
+    .hero-bird.b2 { font-size: 42px; animation-duration: 8.7s; }
+    .hero-bird.b3 { font-size: 36px; animation-duration: 6.4s; }
+    .hero-bird.b4 { font-size: 30px; animation-duration: 9.4s; }
+    @keyframes glide { 0%,100% { transform: translate(0,0) rotate(-2deg);} 50% { transform: translate(18px,-10px) rotate(3deg);} }
+    .hero-big { font-size: clamp(28px, 4vw, 46px); font-weight: 900; line-height: 1; margin: 0 0 12px; color: var(--ink); }
+    .hero-sub { font-size: 1rem; line-height: 1.5; color: var(--muted); margin-bottom: 16px; }
+    .modal-card { width: min(980px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: hidden; }
+    .modal-header { padding: 18px 20px; display: flex; justify-content: space-between; gap: 12px; align-items: start; border-bottom: 1px solid rgba(255,255,255,0.16); }
+    .modal-scroll { max-height: calc(100vh - 120px); overflow: auto; padding: 18px 20px 22px; display: grid; gap: 14px; }
+    .equation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .equation-card, .story-card {
+      border-radius: 16px; border: 1px solid rgba(255,255,255,0.22); background: var(--panel-soft);
+      padding: .8rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .equation-title { font-weight: 900; margin-bottom: 8px; }
+    .equation-line {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .93rem; padding: .65rem .75rem;
+      border-radius: 12px; background: rgba(12,20,40,0.08); border: 1px solid rgba(255,255,255,0.16); overflow-x: auto;
+      margin-top: 6px;
+    }
+    body.dark-mode .equation-line { background: rgba(255,255,255,0.06); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .info-pill { padding: .4rem .65rem; border-radius: 999px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.16); font-size: .82rem; }
+    .close-btn { width: auto; min-width: 100px; }
+    .hidden { display: none !important; }
+    @media (max-width: 768px) {
+      .shell { padding: 10px; }
+      .panel { width: calc(100vw - 20px); }
+      .quick-grid, .save-inline, .level-grid, .start-grid, .equation-grid { grid-template-columns: 1fr; }
+      .start-hero { grid-template-columns: 1fr; }
+      .canvas-hint { display: none; }
+      .save-row { grid-template-columns: 1fr auto auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell d-flex align-items-start">
+    <div class="panel card">
+      <div class="panel-header card-header p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div class="badge-title mb-2">🐦 Flappy Happy</div>
+            <div class="fw-bold fs-6">v18 level 4 fix build</div>
+            <div class="subtitle mt-1">Levels now stack in order: classic → golden ratio → logistic map → V formation • Hold mouse = wind • Click flock = scatter • Space = pause • R = reset</div>
+          </div>
+          <button class="btn btn-cloud btn-sm" id="darkModeBtn" type="button">Dark mode: off</button>
+        </div>
+      </div>
+      <div class="card-body p-3 p-md-4">
+        <div class="status-card mb-3">
+          <div class="section-title">Level select</div>
+          <div class="section-sub">Normally these would unlock progressively. In this test build you can jump straight to level 3.</div>
+          <div class="level-grid" id="levelButtons"></div>
+        </div>
+
+        <div class="status-card mb-3" id="statusCard"></div>
+
+        <div class="quick-grid mb-3">
+          <button class="btn btn-bird" id="toggleTrails" type="button">Trails: off</button>
+          <button class="btn btn-bird" id="toggleWind" type="button">Wind: attract</button>
+          <button class="btn btn-bird" id="toggleGolden" type="button">Golden ratio mode: off</button>
+          <button class="btn btn-cloud" id="toggleLogistic" type="button">Logistic personality: off</button>
+          <button class="btn btn-cloud" id="cycleSky" type="button">Sky: day clouds</button>
+          <button class="btn btn-sun" id="presetGlide" type="button">Slow glide</button>
+          <button class="btn btn-cloud" id="presetNatural" type="button">Natural preset</button>
+          <button class="btn btn-cloud" id="openStart" type="button">Title screen</button>
+          <button class="btn btn-cloud" id="toggleSavePanel" type="button">Snapshots</button>
+          <button class="btn btn-cloud" id="openEquations" type="button">Equations</button>
+        </div>
+
+        <div class="legend-box mb-3" id="legendBox"></div>
+
+        <div class="save-card mb-3 hidden" id="savePanel">
+          <div class="section-title">Snapshot saves</div>
+          <div class="section-sub">Save your current parameter mix, load it later, or mark one as default so it auto-loads on startup.</div>
+          <div class="save-inline mb-3">
+            <input id="saveNameInput" type="text" maxlength="40" placeholder="Name this snapshot" />
+            <button class="btn btn-bird" id="saveSnapshot" type="button">Save current</button>
+            <button class="btn btn-cloud" id="exportSnapshot" type="button">Export JSON</button>
+          </div>
+          <div class="save-list" id="saveList"></div>
+        </div>
+
+        <div class="controls-scroll d-grid gap-2" id="controls"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-hint">Level 4 adds the V-formation decision layer.</div>
+  <canvas id="scene"></canvas>
+  <div class="overlay show" id="startOverlay">
+    <div class="start-card">
+      <div class="start-inner">
+        <div class="start-hero">
+          <div>
+            <div class="badge-title">🐤 layered bird flight lab</div>
+            <h1 class="hero-big">Flappy Happy</h1>
+            <div class="hero-sub">A playful flock sandbox where each level adds one new idea at a time: first classic Boids, then golden-ratio styling, then logistic-map individuality, then V formation flight.</div>
+            <div class="start-grid quick-grid">
+              <button class="btn btn-bird" id="startNewGame">New game</button>
+              <button class="btn btn-cloud" id="startContinue">Continue</button>
+              <button class="btn btn-cloud" id="startExplore">Explore</button>
+              <button class="btn btn-sun" id="startEquations">Equations</button>
+            </div>
+            <div class="subtitle" style="margin-top:14px;">Explore opens saved snapshots for now. The community browser can plug in here later.</div>
+          </div>
+          <div class="hero-birds">
+            <div class="hero-bird" style="left:12%; top:26%;">🐦</div>
+            <div class="hero-bird b2" style="left:52%; top:14%;">🕊️</div>
+            <div class="hero-bird b3" style="left:26%; top:54%;">🐦</div>
+            <div class="hero-bird b4" style="left:68%; top:58%;">🕊️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="equationsOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="badge-title">📘 Equations & origin story</div>
+          <div style="font-weight:900; font-size:1rem; margin-top:10px;">Boids, the golden ratio, the logistic map, and V formation flight</div>
+          <div class="subtitle" style="margin-top:6px;">A richer built-in guide for the math, the creator, and the layered design of this game build.</div>
+        </div>
+        <button class="btn btn-cloud close-btn" id="closeEquations">Close</button>
+      </div>
+      <div class="modal-scroll">
+        <div class="story-card">
+          <div class="equation-title">Who created Boids, and did Reynolds name it?</div>
+          <div class="subtitle">Yes. The term comes from Craig Reynolds himself.</div>
+          <div style="margin-top:8px; line-height:1.55; color:var(--ink);">
+            Craig W. Reynolds created the model in 1986 and published the famous SIGGRAPH paper in 1987. In that paper he explicitly says the simulated bird-like “bird-oid” objects are referred to generically as “boids”, even when they stand in for other creatures such as schooling fish. So the name is Reynolds’ own phrasing, not a later nickname.
+          </div>
+          <div class="pill-row" style="margin-top:10px;">
+            <div class="info-pill">creator: Craig W. Reynolds</div>
+            <div class="info-pill">model created: 1986</div>
+            <div class="info-pill">paper published: SIGGRAPH 1987</div>
+            <div class="info-pill">name origin: “bird-oid” → boid</div>
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="equation-title">A little about Craig Reynolds</div>
+          <div style="line-height:1.55; color:var(--ink);">
+            Reynolds studied computer science at MIT, later built a career around procedural animation, autonomous characters, flocking, steering behaviours, crowds, and game technology, and spent many years in research and production work. His public résumé lists MIT degrees, film/game animation experience, Sony Computer Entertainment research, later work on simulation for autonomous vehicles, and an Academy Scientific and Technical Award for pioneering work in 3D computer animation. His current site says he retired in 2020 and continues as an unaffiliated researcher.
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="equation-title">Where Boids showed up in animation and film</div>
+          <div style="line-height:1.55; color:var(--ink);">
+            Reynolds’ own Boids page says the first animation built directly around the model was <em>Stanley and Stella in: Breaking the Ice</em> (1987). He also says the first feature-film use was Tim Burton’s <em>Batman Returns</em> (1992), where modified Boids software helped drive bat swarms and penguin flock motion. The same page also points to Disney’s <em>The Lion King</em> (1994) for the wildebeest stampede as part of the broader flocking / group-motion lineage. Reynolds’ history page also mentions other procedural group-motion examples around <em>Menagerie</em> and <em>Star Trek: Voyager</em>’s <em>Elogium</em> in the wider behavioral-animation family.
+          </div>
+        </div>
+
+        <div class="equation-grid">
+          <div class="equation-card">
+            <div class="equation-title">Core Boids rule: separation</div>
+            <div class="equation-line">F_{separation} = \sum rac{p_i - p_j}{\lVert p_i - p_j 
+Vert^2}</div>
+            <div class="subtitle">Push away from nearby neighbours so birds do not overlap.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">Core Boids rule: alignment</div>
+            <div class="equation-line">F_{alignment} = \overline{v}_{local} - v_i</div>
+            <div class="subtitle">Turn toward the local average heading.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">Core Boids rule: cohesion</div>
+            <div class="equation-line">F_{cohesion} = \hat{c} \; \min(\max(0, d - d_{comfort}), d_{cap}) \; w_c</div>
+            <div class="subtitle">This build now uses a softened cohesion pull rather than a raw centroid yank, which helps stop the tiny-circle bug you noticed.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">Steering blend used by this game</div>
+            <div class="equation-line">a_i = w_s F_s + w_a F_a + w_c F_c + F_{edge} + F_{wind} + F_{golden} + F_{logistic} + F_{formation}</div>
+            <div class="subtitle">Classic flocking plus optional layered add-ons.</div>
+          </div>
+        </div>
+
+        <div class="equation-grid">
+          <div class="equation-card">
+            <div class="equation-title">Golden ratio</div>
+            <div class="equation-line">arphi = rac{1 + \sqrt{5}}{2} pprox 1.6180339887</div>
+            <div class="equation-line">rac{1}{arphi} = arphi - 1 pprox 0.6180339887</div>
+            <div class="equation-line">arphi^2 = arphi + 1</div>
+            <div class="subtitle">In this game φ is not treated as a hard law of bird motion. It is used as a stylistic shaping idea for turn feel and speed shimmer.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">How golden-ratio mode is used here</div>
+            <div class="equation-line">goldenWave = \sin(arphi t + s) + 0.65\cos((1 + 1/arphi)t + s\sqrt{5})</div>
+            <div class="equation-line">F_{golden} \propto goldenWave \cdot goldenTurnBias</div>
+            <div class="subtitle">This gives level 2 a φ-flavoured motion layer without yet turning each bird into its own full personality profile.</div>
+          </div>
+        </div>
+
+        <div class="equation-grid">
+          <div class="equation-card">
+            <div class="equation-title">Logistic map</div>
+            <div class="equation-line">x_{n+1} = r x_n (1 - x_n)</div>
+            <div class="equation-line">0 \le x_n \le 1, \; 0 \le r \le 4</div>
+            <div class="subtitle">Robert May’s 1976 review popularized this map as a vivid example of how very simple nonlinear equations can generate surprisingly rich and even chaotic behaviour.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">How logistic-map personality works here</div>
+            <div class="equation-line">x_{bird} = f^{(k)}(x_0, r)</div>
+            <div class="equation-line">personalityOffset = (x_{bird} - 0.5) 	imes 2 	imes strength</div>
+            <div class="equation-line">trait = baseTrait 	imes (1 + personalityOffset 	imes span)</div>
+            <div class="subtitle">Each bird gets its own seed, which is pushed through the logistic map to create a signed individuality offset. That offset then slightly perturbs awareness, spacing, steering, speed, wing feel, and formation preference.</div>
+          </div>
+        </div>
+
+        <div class="equation-grid">
+          <div class="equation-card">
+            <div class="equation-title">V formation layer</div>
+            <div class="equation-line">slotTarget = leaderPos - \hat{v}_{leader}\cos(	heta) d + \hat{n}_{leader}\sin(	heta) d</div>
+            <div class="equation-line">F_{slot} \propto (slotTarget - p_i)</div>
+            <div class="subtitle">Level 4 assigns left/right slots behind a leader and pulls birds toward those aerodynamic positions.</div>
+          </div>
+          <div class="equation-card">
+            <div class="equation-title">Wake avoidance</div>
+            <div class="equation-line">F_{wake} \propto side 	imes wakeAvoidanceStrength</div>
+            <div class="subtitle">Birds are nudged away from the dead wake directly behind the leader, encouraging those diagonal V offsets instead of a straight line.</div>
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="equation-title">How the four levels now fit together</div>
+          <div style="line-height:1.55; color:var(--ink);">
+            <strong>Level 1</strong> is pure Boids. <strong>Level 2</strong> adds golden-ratio styling only. <strong>Level 3</strong> adds logistic-map personality, which is where each bird starts to feel more unique. <strong>Level 4</strong> adds the V-formation decision layer on top. That means the ideas stack cleanly instead of all being mixed together too early.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    class Vec2 {
+      constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+      clone() { return new Vec2(this.x, this.y); }
+      set(x, y) { this.x = x; this.y = y; return this; }
+      add(v) { this.x += v.x; this.y += v.y; return this; }
+      sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+      scale(s) { this.x *= s; this.y *= s; return this; }
+      length() { return Math.hypot(this.x, this.y); }
+      lengthSq() { return this.x * this.x + this.y * this.y; }
+      normalize() {
+        const len = this.length();
+        if (len > 1e-8) { this.x /= len; this.y /= len; }
+        return this;
+      }
+      limit(max) {
+        const len = this.length();
+        if (len > max && len > 1e-8) this.scale(max / len);
+        return this;
+      }
+      dot(v) { return this.x * v.x + this.y * v.y; }
+      static sub(a, b) { return new Vec2(a.x - b.x, a.y - b.y); }
+      static add(a, b) { return new Vec2(a.x + b.x, a.y + b.y); }
+      static fromAngle(angle, length = 1) { return new Vec2(Math.cos(angle) * length, Math.sin(angle) * length); }
+      static clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+      static lerp(a, b, t) { return a + (b - a) * t; }
+    }
+
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    const INV_PHI = 1 / PHI;
+    const STORAGE_KEY = 'flappyHappySnapshotsV16';
+    const DEFAULT_SNAPSHOT_KEY = 'flappyHappyDefaultSnapshotV16';
+    const DARK_MODE_KEY = 'flappyHappyDarkModeV16';
+    const SKY_KEY = 'flappyHappySkyV16';
+    const LEVEL_KEY = 'flappyHappyLevelV16';
+
+    const LEVELS = {
+      1: { label: 'Level 1', subtitle: 'Classic Boids only' },
+      2: { label: 'Level 2', subtitle: 'Golden ratio styling' },
+      3: { label: 'Level 3', subtitle: 'Logistic map personality' },
+      4: { label: 'Level 4', subtitle: 'V formation flight' }
+    };
+
+    // =============================================================
+    // GOD MODE
+    // Community-voted "perfect" realistic flight styles live here.
+    // Later your backend/community votes can append or replace these.
+    // Level 1 clear rule: every listed slider must be within 10% of that
+    // slider's range for at least one style below. Level 1 ignores the later add-on layers.
+    // =============================================================
+    const GOD_MODE_REALISTIC_FLIGHT_STYLES = [
+      {
+        id: 'calm-glide',
+        name: 'Calm glide',
+        values: {
+          neighborAwarenessRadius: 104,
+          minimumSeparationDistance: 12,
+          cohesionStrength: 0.0008,
+          separationStrength: 0.056,
+          alignmentStrength: 0.020,
+          maximumFlightSpeed: 3.6,
+          minimumCruiseSpeed: 0.7,
+          edgeAvoidanceStrength: 0.085,
+          maximumSteeringForce: 0.15,
+          wingLengthMultiplier: 2.18,
+          wingFlapMultiplier: 0.78,
+          wingMountOffset: -0.05,
+          tailLengthMultiplier: 1.10,
+          birdScaleMultiplier: 0.92
+        }
+      },
+      {
+        id: 'balanced-flock',
+        name: 'Balanced flock',
+        values: {
+          neighborAwarenessRadius: 92,
+          minimumSeparationDistance: 13,
+          cohesionStrength: 0.0010,
+          separationStrength: 0.070,
+          alignmentStrength: 0.018,
+          maximumFlightSpeed: 4.4,
+          minimumCruiseSpeed: 1.2,
+          edgeAvoidanceStrength: 0.090,
+          maximumSteeringForce: 0.22,
+          wingLengthMultiplier: 1.95,
+          wingFlapMultiplier: 1.00,
+          wingMountOffset: 0.00,
+          tailLengthMultiplier: 1.00,
+          birdScaleMultiplier: 0.90
+        }
+      },
+      {
+        id: 'busy-swallows',
+        name: 'Busy swallows',
+        values: {
+          neighborAwarenessRadius: 86,
+          minimumSeparationDistance: 10,
+          cohesionStrength: 0.0012,
+          separationStrength: 0.082,
+          alignmentStrength: 0.022,
+          maximumFlightSpeed: 5.2,
+          minimumCruiseSpeed: 1.7,
+          edgeAvoidanceStrength: 0.105,
+          maximumSteeringForce: 0.28,
+          wingLengthMultiplier: 1.70,
+          wingFlapMultiplier: 1.34,
+          wingMountOffset: 0.10,
+          tailLengthMultiplier: 1.18,
+          birdScaleMultiplier: 0.82
+        }
+      }
+    ];
+    // =============================================================
+    // END GOD MODE
+    // =============================================================
+
+    const BirdPalette = {
+      list: [
+        { body: '#b32025', wing: '#6f1418', belly: '#d84f4b', head: '#99181c', beak: '#ec8e1b', eye: '#111' },
+        { body: '#7c9d7a', wing: '#50684d', belly: '#dce8d4', head: '#728d6e', beak: '#c79845', eye: '#111' },
+        { body: '#9a8369', wing: '#665241', belly: '#ebe0cf', head: '#8b745c', beak: '#a77b44', eye: '#111' },
+        { body: '#f2f4f7', wing: '#99a5b3', belly: '#ffffff', head: '#f7f9fb', beak: '#e0b64f', eye: '#111' },
+        { body: '#5d7fb3', wing: '#34527f', belly: '#e8f0fa', head: '#7194c6', beak: '#38383d', eye: '#111' },
+        { body: '#2e333b', wing: '#13181f', belly: '#f0f5fb', head: '#232830', beak: '#8f959d', eye: '#fff' },
+        { body: '#e2c544', wing: '#554d34', belly: '#fff3b4', head: '#d8b935', beak: '#b9851a', eye: '#111' }
+      ],
+      random() { return { ...this.list[(Math.random() * this.list.length) | 0] }; }
+    };
+
+    function goldenWave(seed, offset = 0) {
+      return Math.sin(seed * PHI + offset) * 0.55 + Math.cos(seed * (PHI * PHI) + offset * INV_PHI) * 0.45;
+    }
+    function traitMultiplier(seed, offset, intensity, span) {
+      return 1 + goldenWave(seed, offset) * intensity * span;
+    }
+    function logisticStep(x, r) {
+      return r * x * (1 - x);
+    }
+    function logisticSample(seed, r, iterations = 6) {
+      let x = Vec2.clamp(seed, 0.0001, 0.9999);
+      for (let i = 0; i < iterations; i++) x = logisticStep(x, r);
+      return Vec2.clamp(x, 0, 1);
+    }
+
+    const SLIDER_DEFS = [
+      { key: 'flockSize', label: 'Flock size', hint: 'How many birds are active.', min: 20, max: 180, step: 1, fmt: v => String(v), level: 1, reinit: true },
+      { key: 'neighborAwarenessRadius', label: 'Neighbour awareness radius', hint: 'How far each bird notices nearby flockmates.', min: 30, max: 180, step: 1, fmt: v => Number(v).toFixed(0), level: 1 },
+      { key: 'minimumSeparationDistance', label: 'Minimum separation distance', hint: 'Comfort bubble that triggers avoidance.', min: 4, max: 40, step: 1, fmt: v => Number(v).toFixed(0), level: 1 },
+      { key: 'cohesionStrength', label: 'Flock centering strength', hint: 'Soft pull toward the local flock centre. This is damped to prevent tiny orbit collapse.', min: 0.0001, max: 0.0030, step: 0.0001, fmt: v => Number(v).toFixed(4), level: 1 },
+      { key: 'separationStrength', label: 'Separation strength', hint: 'Push-away force when birds get too close.', min: 0.01, max: 0.16, step: 0.002, fmt: v => Number(v).toFixed(3), level: 1 },
+      { key: 'alignmentStrength', label: 'Heading alignment strength', hint: 'How strongly headings match nearby birds.', min: 0.001, max: 0.040, step: 0.001, fmt: v => Number(v).toFixed(3), level: 1 },
+      { key: 'maximumFlightSpeed', label: 'Maximum flight speed', hint: 'Hard cap on speed.', min: 1.0, max: 8.0, step: 0.1, fmt: v => Number(v).toFixed(1), level: 1 },
+      { key: 'minimumCruiseSpeed', label: 'Minimum cruise speed', hint: 'Soft floor that stops birds fully stalling.', min: 0.0, max: 6.0, step: 0.1, fmt: v => Number(v).toFixed(1), level: 1 },
+      { key: 'edgeAvoidanceStrength', label: 'Edge avoidance strength', hint: 'How strongly birds turn back from the screen edge.', min: 0.01, max: 0.25, step: 0.005, fmt: v => Number(v).toFixed(3), level: 1 },
+      { key: 'edgeAwarenessBuffer', label: 'Edge awareness buffer', hint: 'Distance from the border where turning begins.', min: 10, max: 220, step: 1, fmt: v => Number(v).toFixed(0), level: 1 },
+      { key: 'scoutDriftStrength', label: 'Scout drift strength', hint: 'Tiny left/right scouting drift for a few birds.', min: 0.00, max: 0.12, step: 0.005, fmt: v => Number(v).toFixed(3), level: 1 },
+      { key: 'pointerWindStrength', label: 'Pointer wind strength', hint: 'Mouse attraction or repulsion strength.', min: 0.00, max: 0.70, step: 0.01, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'maximumSteeringForce', label: 'Maximum steering force', hint: 'Maximum course change per update.', min: 0.05, max: 0.40, step: 0.01, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'birdScaleMultiplier', label: 'Bird size multiplier', hint: 'Overall body size.', min: 0.55, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'wingLengthMultiplier', label: 'Wing length multiplier', hint: 'Longer wings for a more realistic silhouette.', min: 1.20, max: 2.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'wingMountOffset', label: 'Wing mount offset', hint: 'Where the wings sit vertically on the body.', min: -0.45, max: 0.45, step: 0.01, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'tailLengthMultiplier', label: 'Tail length multiplier', hint: 'Tail extension behind the body.', min: 0.60, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'wingFlapMultiplier', label: 'Wing flap multiplier', hint: 'Visual flap pace only.', min: 0.40, max: 1.80, step: 0.05, fmt: v => Number(v).toFixed(2), level: 1 },
+      { key: 'goldenStyleStrength', label: 'Golden style strength', hint: 'How strongly φ-based styling influences motion feel.', min: 0.00, max: PHI, step: 0.01, fmt: v => Number(v).toFixed(2), level: 2 },
+      { key: 'goldenTurnBias', label: 'Golden turn bias', hint: 'How strongly φ-mode bends heading.', min: 0.00, max: 0.25, step: 0.005, fmt: v => Number(v).toFixed(3), level: 2 },
+      { key: 'goldenSpeedShimmerDepth', label: 'Golden speed shimmer depth', hint: 'Oscillation depth only. This no longer compounds runaway speed.', min: 0.00, max: 1.00, step: 0.02, fmt: v => Number(v).toFixed(2), level: 2 },
+      { key: 'goldenSpeedBoost', label: 'Golden speed boost', hint: 'How much positive shimmer can lift target speed.', min: 0.00, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 2 },
+      { key: 'logisticPersonalityStrength', label: 'Logistic personality strength', hint: 'How much each bird is allowed to deviate from the flock baseline.', min: 0.00, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 3 },
+      { key: 'logisticChaosParameter', label: 'Logistic chaos parameter r', hint: 'Around 3.57 to 4 enters chaotic territory.', min: 2.40, max: 4.00, step: 0.01, fmt: v => Number(v).toFixed(2), level: 3 },
+      { key: 'vFormationBias', label: 'V formation bias', hint: 'How strongly birds seek side slots behind a leader.', min: 0.00, max: 0.20, step: 0.005, fmt: v => Number(v).toFixed(3), level: 4 },
+      { key: 'wakeAvoidanceStrength', label: 'Wake avoidance strength', hint: 'How strongly birds avoid the dead wake directly behind a leader.', min: 0.00, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 4 },
+      { key: 'formationSlotCommitment', label: 'Formation slot commitment', hint: 'How steadily a bird sticks to its left/right V slot.', min: 0.00, max: 1.60, step: 0.05, fmt: v => Number(v).toFixed(2), level: 4 },
+      { key: 'leaderRotationRate', label: 'Leader rotation rate', hint: 'Higher values rotate the front bird more often.', min: 0.00, max: 1.20, step: 0.05, fmt: v => Number(v).toFixed(2), level: 4 },
+      { key: 'vFormationAngle', label: 'V formation angle', hint: 'Opening angle of the V.', min: 15, max: 65, step: 1, fmt: v => Number(v).toFixed(0) + '°', level: 4 },
+      { key: 'vFormationSpacing', label: 'V formation spacing', hint: 'Distance between birds in the chain.', min: 18, max: 86, step: 1, fmt: v => Number(v).toFixed(0), level: 4 }
+    ];
+    const SLIDER_MAP = Object.fromEntries(SLIDER_DEFS.map(def => [def.key, def]));
+
+    class Bird {
+      constructor(bounds, config, index) {
+        this.index = index;
+        this.position = new Vec2(Math.random() * bounds.width, Math.random() * bounds.height);
+        this.acceleration = new Vec2();
+        this.phase = Math.random() * Math.PI * 2;
+        this.palette = BirdPalette.random();
+        this.goldenSeed = Math.random() * Math.PI * 2;
+        this.logisticSeed = 0.08 + Math.random() * 0.84;
+        this.logisticState = this.logisticSeed;
+        this.turnMemory = Math.random() * 2 - 1;
+        this.baseFlapRate = 5.9 + Math.random() * 2.0;
+        this.baseSize = 5.6 + Math.random() * 1.6;
+        this.sidePreference = Math.random() < 0.5 ? -1 : 1;
+        this.slotRank = 0;
+        this.energy = 0.2 + Math.random() * 0.25;
+        this.fatigue = Math.random() * 0.15;
+        this.isLeader = false;
+        this.formationError = 0;
+        this.applyTraits(config);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = this.traits.minimumCruiseSpeed + Math.random() * Math.max(0.2, this.traits.maximumFlightSpeed - this.traits.minimumCruiseSpeed);
+        this.velocity = Vec2.fromAngle(angle, speed);
+      }
+      getLogisticOffset(config) {
+        const strength = Vec2.clamp(config.logisticPersonalityStrength || 0, 0, 1.6);
+        if (strength <= 0) return 0;
+        const chaos = logisticSample(this.logisticSeed, config.logisticChaosParameter || 3.86, 7);
+        this.logisticState = chaos;
+        return (chaos - 0.5) * 2 * (strength / 1.6);
+      }
+      applyTraits(config) {
+        const goldenIntensity = Vec2.clamp(((config.runtimeGoldenEnabled ? (config.goldenStyleStrength || 0) : 0)) / PHI, 0, 1);
+        const logisticOffset = config.runtimeLogisticEnabled ? this.getLogisticOffset(config) : 0;
+        const seed = this.goldenSeed;
+        const goldenMultiplier = (offset, span) => traitMultiplier(seed, offset, goldenIntensity, span);
+        const logisticMultiplier = span => 1 + logisticOffset * span;
+        this.traits = {
+          neighborAwarenessRadius: Math.max(14, config.neighborAwarenessRadius * goldenMultiplier(0.30, 0.10) * logisticMultiplier(0.26)),
+          minimumSeparationDistance: Math.max(2, config.minimumSeparationDistance * goldenMultiplier(0.90, 0.08) * logisticMultiplier(0.24)),
+          cohesionStrength: Math.max(0.00001, config.cohesionStrength * goldenMultiplier(1.50, 0.04) * logisticMultiplier(0.26)),
+          separationStrength: Math.max(0.001, config.separationStrength * goldenMultiplier(2.10, 0.06) * logisticMultiplier(0.34)),
+          alignmentStrength: Math.max(0.001, config.alignmentStrength * goldenMultiplier(2.70, 0.08) * logisticMultiplier(0.28)),
+          maximumFlightSpeed: Math.max(0.5, config.maximumFlightSpeed * goldenMultiplier(3.30, 0.08) * logisticMultiplier(0.18)),
+          minimumCruiseSpeed: Math.max(0, config.minimumCruiseSpeed * goldenMultiplier(3.90, 0.08) * logisticMultiplier(0.18)),
+          maximumSteeringForce: Math.max(0.01, config.maximumSteeringForce * goldenMultiplier(4.50, 0.10) * logisticMultiplier(0.22)),
+          wingFlapMultiplier: Math.max(0.2, config.wingFlapMultiplier * goldenMultiplier(5.10, 0.10) * logisticMultiplier(0.18)),
+          birdScaleMultiplier: Math.max(0.3, config.birdScaleMultiplier * goldenMultiplier(5.70, 0.08) * logisticMultiplier(0.12)),
+          wingLengthMultiplier: Math.max(0.6, config.wingLengthMultiplier * goldenMultiplier(6.30, 0.08) * logisticMultiplier(0.14)),
+          tailLengthMultiplier: Math.max(0.3, config.tailLengthMultiplier * goldenMultiplier(6.90, 0.08) * logisticMultiplier(0.16)),
+          wingMountOffset: Vec2.clamp(config.wingMountOffset * goldenMultiplier(7.10, 0.06) * logisticMultiplier(0.10), -0.55, 0.55),
+          goldenTurnBias: Math.max(0, config.goldenTurnBias * goldenMultiplier(7.50, 0.24)),
+          goldenSpeedShimmerDepth: Math.max(0, config.goldenSpeedShimmerDepth * goldenMultiplier(8.10, 0.16)),
+          goldenSpeedBoost: Math.max(0, config.goldenSpeedBoost * goldenMultiplier(8.40, 0.16)),
+          scoutDriftStrength: goldenMultiplier(8.70, 0.30),
+          pointerWindStrength: goldenMultiplier(9.30, 0.24),
+          vAffinity: goldenMultiplier(10.10, 0.22) * logisticMultiplier(0.14),
+          wakeBias: goldenMultiplier(10.90, 0.10) * logisticMultiplier(0.16),
+          slotBias: goldenMultiplier(11.70, 0.10) * logisticMultiplier(0.18)
+        };
+        if (this.traits.minimumCruiseSpeed > this.traits.maximumFlightSpeed) this.traits.minimumCruiseSpeed = this.traits.maximumFlightSpeed * 0.92;
+        this.flapRate = this.baseFlapRate * this.traits.wingFlapMultiplier;
+        this.size = this.baseSize * this.traits.birdScaleMultiplier;
+      }
+      refreshFromConfig(config) {
+        this.applyTraits(config);
+        const speed = this.velocity?.length?.() || 0;
+        if (speed > 1e-6) {
+          const clamped = Vec2.clamp(speed, this.traits.minimumCruiseSpeed, this.traits.maximumFlightSpeed);
+          this.velocity.normalize().scale(clamped);
+        }
+      }
+      resetForce() { this.acceleration.set(0, 0); }
+    }
+
+    class BirdRenderer {
+      constructor(ctx) { this.ctx = ctx; }
+      drawWing(ctx, x, y, wingLength, side, spread, featherDrop, bodyInset, color, highlight) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x - wingLength * 0.18, y + side * wingLength * (0.20 + spread * 0.82), x - wingLength, y + side * featherDrop);
+        ctx.quadraticCurveTo(x - wingLength * 0.66, y + side * (bodyInset * 0.72), x + wingLength * 0.12, y + side * bodyInset);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = highlight;
+        ctx.globalAlpha = 0.34;
+        ctx.beginPath();
+        ctx.moveTo(x + wingLength * 0.02, y + side * bodyInset * 0.15);
+        ctx.quadraticCurveTo(x - wingLength * 0.12, y + side * wingLength * (0.12 + spread * 0.52), x - wingLength * 0.58, y + side * featherDrop * 0.58);
+        ctx.quadraticCurveTo(x - wingLength * 0.24, y + side * bodyInset * 0.42, x + wingLength * 0.08, y + side * bodyInset * 0.52);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      draw(boid) {
+        const ctx = this.ctx;
+        const angle = Math.atan2(boid.velocity.y, boid.velocity.x);
+        const size = boid.size;
+        const flap01 = (Math.sin(boid.phase) + 1) * 0.5;
+        const wingLength = size * boid.traits.wingLengthMultiplier;
+        const wingSpread = 0.18 + flap01 * 0.78;
+        const featherDrop = size * (0.14 + (1 - flap01) * 0.10);
+        const bodyInset = size * (0.14 + flap01 * 0.22);
+        const rootX = size * 0.05;
+        const wingMount = size * boid.traits.wingMountOffset;
+        const rootYOffset = size * 0.05 + wingMount;
+        const tailLengthMultiplier = size * (0.90 + boid.traits.tailLengthMultiplier * 0.95);
+        const tailWidth = size * (0.18 + boid.traits.tailLengthMultiplier * 0.18);
+        const p = boid.palette;
+
+        ctx.save();
+        ctx.translate(boid.position.x, boid.position.y);
+        ctx.rotate(angle);
+
+        this.drawWing(ctx, rootX, -rootYOffset, wingLength, -1, wingSpread, featherDrop, bodyInset, p.wing, p.belly);
+        this.drawWing(ctx, rootX, rootYOffset, wingLength, 1, wingSpread, featherDrop, bodyInset, p.wing, p.belly);
+
+        ctx.fillStyle = p.wing;
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.96, 0);
+        ctx.lineTo(-tailLengthMultiplier, -tailWidth);
+        ctx.lineTo(-size * 1.26, 0);
+        ctx.lineTo(-tailLengthMultiplier, tailWidth);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = Math.max(0.9, size * 0.04);
+        ctx.beginPath();
+        ctx.moveTo(-size * 1.02, 0);
+        ctx.lineTo(-tailLengthMultiplier, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = p.body;
+        ctx.beginPath();
+        ctx.moveTo(size * 1.18, 0);
+        ctx.quadraticCurveTo(size * 0.30, size * 0.72, -size * 0.78, size * 0.38);
+        ctx.quadraticCurveTo(-size * 1.10, 0, -size * 0.78, -size * 0.38);
+        ctx.quadraticCurveTo(size * 0.30, -size * 0.72, size * 1.18, 0);
+        ctx.fill();
+
+        ctx.fillStyle = p.belly;
+        ctx.beginPath();
+        ctx.ellipse(size * 0.12, size * 0.10, size * 0.82, size * 0.30, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+        ctx.lineWidth = Math.max(1, size * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.08, -size * 0.03);
+        ctx.quadraticCurveTo(size * 0.34, -size * 0.28, size * 0.92, -size * 0.08);
+        ctx.stroke();
+
+        ctx.fillStyle = p.head;
+        ctx.beginPath();
+        ctx.arc(size * 1.02, -size * 0.04, size * 0.32, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = p.beak;
+        ctx.beginPath();
+        ctx.moveTo(size * 1.30, -size * 0.03);
+        ctx.lineTo(size * 1.74, 0);
+        ctx.lineTo(size * 1.30, size * 0.08);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = p.eye;
+        ctx.beginPath();
+        ctx.arc(size * 1.08, -size * 0.10, size * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    class SkyPainter {
+      constructor(ctx, simulation) {
+        this.ctx = ctx;
+        this.simulation = simulation;
+        this.skies = [
+          { id: 'day-clouds', label: 'day clouds' },
+          { id: 'forest-morning', label: 'forest morning' },
+          { id: 'sunset-hills', label: 'sunset hills' },
+          { id: 'night-moon', label: 'night moon' }
+        ];
+      }
+      get current() { return this.skies[this.simulation.state.skyIndex % this.skies.length]; }
+      gradient(colors, h) {
+        const g = this.ctx.createLinearGradient(0, 0, 0, h);
+        colors.forEach(([stop, color]) => g.addColorStop(stop, color));
+        return g;
+      }
+      drawSun(x, y, r, color='rgba(255,219,102,0.95)') {
+        const ctx = this.ctx;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      cloud(x, y, s, alpha=0.24) {
+        const ctx = this.ctx;
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 42 * s, 20 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + 28 * s, y - 10 * s, 30 * s, 22 * s, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + 58 * s, y, 38 * s, 18 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      hills(w, h, defs) {
+        const ctx = this.ctx;
+        defs.forEach(([color, yMul, ampMul], idx) => {
+          const y = h * yMul;
+          const amp = h * ampMul;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(0, h);
+          ctx.lineTo(0, y);
+          for (let x = 0; x <= w; x += 24) {
+            const n = Math.sin(x * 0.006 + idx * 1.1) * amp * 0.40 + Math.cos(x * 0.011 + idx * 2.2) * amp * 0.22;
+            ctx.lineTo(x, y + n);
+          }
+          ctx.lineTo(w, h);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+      trees(w, h, leafA, leafB, yBaseMul) {
+        const ctx = this.ctx;
+        const yBase = h * yBaseMul;
+        for (let x = -10; x < w + 30; x += 48) {
+          const s = 0.8 + ((x * 17) % 5) * 0.08;
+          ctx.fillStyle = '#5d4332';
+          ctx.fillRect(x + 12 * s, yBase - 34 * s, 8 * s, 40 * s);
+          ctx.fillStyle = x % 96 === 0 ? leafB : leafA;
+          ctx.beginPath();
+          ctx.arc(x + 16 * s, yBase - 44 * s, 16 * s, 0, Math.PI * 2);
+          ctx.arc(x + 4 * s, yBase - 34 * s, 12 * s, 0, Math.PI * 2);
+          ctx.arc(x + 28 * s, yBase - 34 * s, 12 * s, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      drawBackground() {
+        const ctx = this.ctx;
+        const w = this.simulation.bounds.width;
+        const h = this.simulation.bounds.height;
+        const t = performance.now() * 0.00018;
+        const id = this.current.id;
+        if (id === 'day-clouds') {
+          ctx.fillStyle = this.gradient([[0, '#7fb5ec'], [0.48, '#bbdfff'], [1, '#eef8ff']], h);
+          ctx.fillRect(0, 0, w, h);
+          this.drawSun(w * 0.82, h * 0.16, 48);
+          for (let i = 0; i < 5; i++) this.cloud((t * (110 + i * 20) + i * 240) % (w + 280) - 140, 90 + i * 64, 1 + i * 0.14, 0.20 + i * 0.02);
+        } else if (id === 'forest-morning') {
+          ctx.fillStyle = this.gradient([[0, '#93d0ff'], [0.56, '#dff3ff'], [1, '#fff5df']], h);
+          ctx.fillRect(0, 0, w, h);
+          this.drawSun(w * 0.14, h * 0.18, 54, 'rgba(255,233,165,0.96)');
+          for (let i = 0; i < 4; i++) this.cloud((t * (70 + i * 10) + i * 290) % (w + 320) - 160, 100 + i * 55, 1.1 + i * 0.11, 0.16);
+          ctx.fillStyle = '#8ac38d';
+          ctx.beginPath();
+          ctx.ellipse(w * 0.5, h * 0.93, w * 0.65, h * 0.14, 0, 0, Math.PI * 2);
+          ctx.fill();
+          this.hills(w, h, [['#7eb381', 0.82, 0.20], ['#5f8e62', 0.88, 0.16]]);
+          this.trees(w, h, '#3f7048', '#2d5637', 0.88);
+        } else if (id === 'sunset-hills') {
+          ctx.fillStyle = this.gradient([[0, '#5c7df2'], [0.38, '#ff8f73'], [0.76, '#ffd7a8'], [1, '#ffeede']], h);
+          ctx.fillRect(0, 0, w, h);
+          this.drawSun(w * 0.75, h * 0.31, 64, 'rgba(255,201,99,0.94)');
+          for (let i = 0; i < 3; i++) this.cloud((t * (42 + i * 7) + i * 280) % (w + 360) - 180, 120 + i * 72, 1.4 + i * 0.18, 0.11);
+          this.hills(w, h, [['#cc8766', 0.84, 0.17], ['#81557c', 0.90, 0.14], ['#50385f', 0.95, 0.11]]);
+        } else {
+          ctx.fillStyle = this.gradient([[0, '#0d1430'], [0.56, '#15244e'], [1, '#27396d']], h);
+          ctx.fillRect(0, 0, w, h);
+          this.drawSun(w * 0.82, h * 0.18, 42, 'rgba(245,244,255,0.92)');
+          ctx.fillStyle = 'rgba(255,255,255,0.82)';
+          for (let i = 0; i < 80; i++) {
+            const x = (i * 137.3) % w;
+            const y = (i * 61.7) % (h * 0.62);
+            const r = 0.8 + (i % 3) * 0.5 + 0.2 * Math.sin(t * 8 + i);
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          for (let i = 0; i < 2; i++) this.cloud((t * (20 + i * 6) + i * 440) % (w + 360) - 180, 120 + i * 90, 1.8 + i * 0.2, 0.06);
+          this.hills(w, h, [['#172344', 0.86, 0.13], ['#101a35', 0.93, 0.10]]);
+          this.trees(w, h, '#111c30', '#0e1627', 0.91);
+        }
+      }
+    }
+
+    class SnapshotStore {
+      static getAll() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+        catch { return []; }
+      }
+      static saveAll(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+      static save(name, payload) {
+        const items = this.getAll().filter(x => x.name !== name);
+        items.unshift({ name, createdAt: new Date().toISOString(), payload });
+        this.saveAll(items.slice(0, 50));
+      }
+      static remove(name) {
+        this.saveAll(this.getAll().filter(x => x.name !== name));
+        if (localStorage.getItem(DEFAULT_SNAPSHOT_KEY) === name) localStorage.removeItem(DEFAULT_SNAPSHOT_KEY);
+      }
+      static setDefault(name) { localStorage.setItem(DEFAULT_SNAPSHOT_KEY, name); }
+      static getDefault() { return localStorage.getItem(DEFAULT_SNAPSHOT_KEY); }
+      static find(name) { return this.getAll().find(x => x.name === name); }
+    }
+
+    class FlightStyleLibrary {
+      constructor(styles, sliderMap) { this.styles = styles; this.sliderMap = sliderMap; }
+      evaluate(config) {
+        let best = null;
+        for (const style of this.styles) {
+          const entries = Object.entries(style.values);
+          let scoreSum = 0;
+          let pass = true;
+          const misses = [];
+          for (const [key, target] of entries) {
+            const def = this.sliderMap[key];
+            if (!def) continue;
+            const range = def.max - def.min;
+            const tolerance = range * 0.10;
+            const diff = Math.abs((config[key] ?? 0) - target);
+            const closeness = Math.max(0, 1 - diff / (tolerance || 1));
+            scoreSum += closeness;
+            if (diff > tolerance) {
+              pass = false;
+              misses.push(key);
+            }
+          }
+          const score = entries.length ? scoreSum / entries.length : 0;
+          const result = { style, score, pass, misses };
+          if (!best || result.score > best.score) best = result;
+        }
+        return best;
+      }
+    }
+
+    class FormationSystem {
+      constructor(simulation) {
+        this.simulation = simulation;
+        this.leaderIndex = 0;
+        this.slotAssignments = [];
+      }
+      rebuildAssignments() {
+        const boids = this.simulation.boids;
+        this.slotAssignments = [];
+        let leftRank = 1;
+        let rightRank = 1;
+        for (let i = 0; i < boids.length; i++) {
+          if (i === this.leaderIndex) {
+            boids[i].slotRank = 0;
+            boids[i].isLeader = true;
+            continue;
+          }
+          const side = boids[i].sidePreference || (i % 2 === 0 ? -1 : 1);
+          const rank = side < 0 ? leftRank++ : rightRank++;
+          boids[i].slotRank = rank;
+          boids[i].sidePreference = side;
+          boids[i].isLeader = false;
+          this.slotAssignments.push({ boid: boids[i], side, rank });
+        }
+      }
+      ensureLeaderValid() {
+        if (!this.simulation.boids.length) return;
+        if (this.leaderIndex >= this.simulation.boids.length) this.leaderIndex = 0;
+        const leader = this.simulation.boids[this.leaderIndex];
+        if (!leader) this.leaderIndex = 0;
+      }
+      maybeRotateLeader(dt) {
+        this.ensureLeaderValid();
+        const cfg = this.simulation.config;
+        const boids = this.simulation.boids;
+        if (!boids.length) return;
+        const leader = boids[this.leaderIndex];
+        leader.fatigue = Vec2.clamp(leader.fatigue + dt * (0.08 + cfg.leaderRotationRate * 0.10), 0, 1.6);
+        for (let i = 0; i < boids.length; i++) {
+          if (i === this.leaderIndex) continue;
+          boids[i].fatigue = Vec2.clamp(boids[i].fatigue - dt * 0.04, 0, 1.6);
+        }
+        const threshold = 0.55 + (1 - Vec2.clamp(cfg.leaderRotationRate / 1.2, 0, 1)) * 0.55;
+        if (cfg.leaderRotationRate > 0 && leader.fatigue > threshold) {
+          let bestIndex = this.leaderIndex;
+          let bestScore = Infinity;
+          for (let i = 0; i < boids.length; i++) {
+            if (i === this.leaderIndex) continue;
+            const candidate = boids[i];
+            const score = candidate.fatigue + candidate.position.y * 0.0002;
+            if (score < bestScore) { bestScore = score; bestIndex = i; }
+          }
+          if (bestIndex !== this.leaderIndex) {
+            boids[this.leaderIndex].fatigue *= 0.55;
+            this.leaderIndex = bestIndex;
+            boids[this.leaderIndex].fatigue *= 0.45;
+            this.rebuildAssignments();
+          }
+        }
+      }
+      getSlotTarget(leader, side, rank) {
+        const dir = leader.velocity.clone().normalize();
+        if (dir.lengthSq() < 1e-6) dir.set(1, 0);
+        const angle = this.simulation.config.vFormationAngle * Math.PI / 180;
+        const step = this.simulation.config.vFormationSpacing * rank;
+        const back = dir.clone().scale(-Math.cos(angle) * step);
+        const lateral = new Vec2(-dir.y, dir.x).scale(side * Math.sin(angle) * step);
+        return leader.position.clone().add(back).add(lateral);
+      }
+      apply(dt) {
+        const sim = this.simulation;
+        const boids = sim.boids;
+        if (sim.state.currentLevel < 4 || boids.length < 3 || sim.config.vFormationBias <= 0) {
+          sim.metrics.vQuality = 0;
+          return;
+        }
+        this.ensureLeaderValid();
+        this.maybeRotateLeader(dt);
+        const leader = boids[this.leaderIndex];
+        leader.isLeader = true;
+        const leaderDir = leader.velocity.clone().normalize();
+        if (leaderDir.lengthSq() < 1e-6) leaderDir.set(1, 0);
+        leader.acceleration.add(leaderDir.clone().scale(0.012 + sim.config.vFormationBias * 0.08));
+
+        let qualitySum = 0;
+        let count = 0;
+
+        for (const assignment of this.slotAssignments) {
+          const boid = assignment.boid;
+          const target = this.getSlotTarget(leader, assignment.side, assignment.rank);
+          const toTarget = Vec2.sub(target, boid.position);
+          const dist = Math.max(1, toTarget.length());
+          boid.formationError = dist;
+
+          const slotForce = toTarget.normalize().scale(sim.config.vFormationBias * sim.config.formationSlotCommitment * boid.traits.slotBias * Math.min(1.6, dist / 50));
+          boid.acceleration.add(slotForce);
+
+          const desiredVel = leader.velocity.clone();
+          const alignForce = Vec2.sub(desiredVel, boid.velocity).scale(0.0035 * sim.config.formationSlotCommitment);
+          boid.acceleration.add(alignForce);
+
+          const wakeVec = Vec2.sub(boid.position, leader.position);
+          const backward = leaderDir.clone().scale(-1);
+          const longAxis = wakeVec.dot(backward);
+          const sideAxis = Math.abs(wakeVec.dot(new Vec2(-leaderDir.y, leaderDir.x)));
+          if (longAxis > 0 && sideAxis < sim.config.vFormationSpacing * 0.28) {
+            const wakePush = new Vec2(-leaderDir.y, leaderDir.x).scale(assignment.side * sim.config.wakeAvoidanceStrength * 0.018 * boid.traits.wakeBias);
+            boid.acceleration.add(wakePush);
+          }
+
+          boid.energy = Vec2.clamp(boid.energy + dt * (0.12 - dist / (sim.config.vFormationSpacing * 120)), 0, 1.4);
+          qualitySum += Math.max(0, 1 - dist / (sim.config.vFormationSpacing * 1.8));
+          count++;
+        }
+        sim.metrics.vQuality = count ? qualitySum / count : 0;
+      }
+    }
+
+    class BoidSimulation {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d', { alpha: true });
+        this.renderer = new BirdRenderer(this.ctx);
+        this.skyPainter = new SkyPainter(this.ctx, this);
+        this.styleLibrary = new FlightStyleLibrary(GOD_MODE_REALISTIC_FLIGHT_STYLES, SLIDER_MAP);
+        this.formationSystem = new FormationSystem(this);
+        this.pointer = { x: 0, y: 0, down: false, inside: false };
+        this.state = { paused: false, trails: false, windAttract: true, goldenRatioMode: false, logisticPersonalityMode: false, skyIndex: 0, currentLevel: 1 };
+        this.frameCap = 144;
+        this.frameTime = 1000 / this.frameCap;
+        this.lastFrame = 0;
+        this.lastTimestamp = 0;
+        this.dprCap = 1.25;
+        this.metrics = { vQuality: 0, styleEval: null };
+        this.defaultConfig = {
+          flockSize: 92,
+          neighborAwarenessRadius: 92,
+          minimumSeparationDistance: 13,
+          cohesionStrength: 0.0010,
+          separationStrength: 0.070,
+          alignmentStrength: 0.018,
+          maximumFlightSpeed: 4.4,
+          minimumCruiseSpeed: 1.2,
+          edgeAvoidanceStrength: 0.090,
+          edgeAwarenessBuffer: 110,
+          scoutDriftStrength: 0.03,
+          pointerWindStrength: 0.20,
+          maximumSteeringForce: 0.22,
+          birdScaleMultiplier: 0.90,
+          wingLengthMultiplier: 1.95,
+          wingMountOffset: 0.00,
+          tailLengthMultiplier: 1.0,
+          wingFlapMultiplier: 1.0,
+          goldenStyleStrength: 0.66,
+          goldenTurnBias: 0.08,
+          goldenSpeedShimmerDepth: 0.18,
+          goldenSpeedBoost: 0.24,
+          logisticPersonalityStrength: 0.72,
+          logisticChaosParameter: 3.86,
+          vFormationBias: 0.10,
+          wakeAvoidanceStrength: 0.95,
+          formationSlotCommitment: 1.05,
+          leaderRotationRate: 0.60,
+          vFormationAngle: 34,
+          vFormationSpacing: 40
+        };
+        this.config = { ...this.defaultConfig };
+        this.boids = [];
+        this.leadersA = new Set();
+        this.leadersB = new Set();
+        this.resize();
+        this.attachEvents();
+        this.restoreSky();
+        this.restoreLevel();
+        this.rebuildFlock();
+        this.enforceLevelRules();
+      }
+      get bounds() { return { width: window.innerWidth, height: window.innerHeight }; }
+      resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, this.dprCap);
+        this.canvas.width = Math.floor(window.innerWidth * dpr);
+        this.canvas.height = Math.floor(window.innerHeight * dpr);
+        this.canvas.style.width = window.innerWidth + 'px';
+        this.canvas.style.height = window.innerHeight + 'px';
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      restoreSky() {
+        const saved = localStorage.getItem(SKY_KEY);
+        const idx = this.skyPainter.skies.findIndex(s => s.id === saved);
+        this.state.skyIndex = idx >= 0 ? idx : 0;
+      }
+      restoreLevel() {
+        const level = Number(localStorage.getItem(LEVEL_KEY) || 1);
+        this.state.currentLevel = LEVELS[level] ? level : 1;
+      }
+      cycleSky() {
+        this.state.skyIndex = (this.state.skyIndex + 1) % this.skyPainter.skies.length;
+        localStorage.setItem(SKY_KEY, this.skyPainter.current.id);
+      }
+      attachEvents() {
+        window.addEventListener('resize', () => this.resize());
+        this.canvas.addEventListener('pointerdown', (e) => {
+          const p = this.pointerFromEvent(e);
+          this.pointer.x = p.x; this.pointer.y = p.y; this.pointer.down = true; this.pointer.inside = true;
+          this.canvas.setPointerCapture(e.pointerId);
+          this.scatter(p.x, p.y);
+        });
+        this.canvas.addEventListener('pointermove', (e) => {
+          const p = this.pointerFromEvent(e);
+          this.pointer.x = p.x; this.pointer.y = p.y; this.pointer.inside = true;
+        });
+        this.canvas.addEventListener('pointerup', (e) => {
+          this.pointer.down = false;
+          if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId);
+        });
+        this.canvas.addEventListener('pointercancel', (e) => {
+          this.pointer.down = false;
+          if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId);
+        });
+        this.canvas.addEventListener('pointerleave', () => { this.pointer.inside = false; });
+        document.addEventListener('visibilitychange', () => { this.state.paused = document.hidden ? true : this.state.paused; });
+        window.addEventListener('keydown', (e) => {
+          if (e.key === ' ') { e.preventDefault(); this.state.paused = !this.state.paused; }
+          if (e.key.toLowerCase() === 'r') this.reset();
+        });
+      }
+      pointerFromEvent(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+      rebuildFlock() {
+        const runtimeConfig = { ...this.config, runtimeGoldenEnabled: this.state.goldenRatioMode, runtimeLogisticEnabled: this.state.logisticPersonalityMode };
+        this.boids = Array.from({ length: this.config.flockSize }, (_, i) => new Bird(this.bounds, runtimeConfig, i));
+        this.assignLeaders();
+        this.formationSystem.leaderIndex = 0;
+        this.formationSystem.rebuildAssignments();
+      }
+      assignLeaders() {
+        this.leadersA.clear(); this.leadersB.clear();
+        const n = this.boids.length; const k = Math.max(1, Math.floor(n * 0.08));
+        while (this.leadersA.size < k) this.leadersA.add((Math.random() * n) | 0);
+        while (this.leadersB.size < k) {
+          const i = (Math.random() * n) | 0;
+          if (!this.leadersA.has(i)) this.leadersB.add(i);
+        }
+      }
+      applyPreset(name) {
+        if (name === 'natural') Object.assign(this.config, {
+          neighborAwarenessRadius: 96, minimumSeparationDistance: 14, cohesionStrength: 0.0010, separationStrength: 0.072, alignmentStrength: 0.018,
+          maximumFlightSpeed: 4.3, minimumCruiseSpeed: 1.15, edgeAvoidanceStrength: 0.090, edgeAwarenessBuffer: 110, scoutDriftStrength: 0.03,
+          pointerWindStrength: 0.20, maximumSteeringForce: 0.22, birdScaleMultiplier: 0.92, wingLengthMultiplier: 2.00, wingMountOffset: 0.00,
+          tailLengthMultiplier: 1.05, wingFlapMultiplier: 1.0, goldenStyleStrength: 0.62, goldenTurnBias: 0.08, goldenSpeedShimmerDepth: 0.18,
+          goldenSpeedBoost: 0.24, logisticPersonalityStrength: 0.72, logisticChaosParameter: 3.86, vFormationBias: 0.10, wakeAvoidanceStrength: 0.95,
+          formationSlotCommitment: 1.05, leaderRotationRate: 0.60, vFormationAngle: 34, vFormationSpacing: 40
+        });
+        else if (name === 'glide') Object.assign(this.config, {
+          neighborAwarenessRadius: 100, minimumSeparationDistance: 13, cohesionStrength: 0.0009, separationStrength: 0.062, alignmentStrength: 0.016,
+          maximumFlightSpeed: 3.8, minimumCruiseSpeed: 0.55, edgeAvoidanceStrength: 0.085, edgeAwarenessBuffer: 120, scoutDriftStrength: 0.02,
+          pointerWindStrength: 0.16, maximumSteeringForce: 0.18, birdScaleMultiplier: 0.94, wingLengthMultiplier: 2.08, wingMountOffset: -0.04,
+          tailLengthMultiplier: 1.12, wingFlapMultiplier: 0.88, goldenStyleStrength: 0.46, goldenTurnBias: 0.06, goldenSpeedShimmerDepth: 0.12,
+          goldenSpeedBoost: 0.18, logisticPersonalityStrength: 0.54, logisticChaosParameter: 3.79, vFormationBias: 0.08, wakeAvoidanceStrength: 0.80,
+          formationSlotCommitment: 0.92, leaderRotationRate: 0.45, vFormationAngle: 32, vFormationSpacing: 42
+        });
+        this.refreshBirdTraits();
+      }
+      reset() {
+        Object.assign(this.config, this.defaultConfig);
+        this.state.trails = false;
+        this.state.windAttract = true;
+        this.state.paused = false;
+        this.state.goldenRatioMode = false;
+        this.rebuildFlock();
+        this.enforceLevelRules();
+      }
+      scatter(x, y) {
+        for (const boid of this.boids) {
+          const offset = Vec2.sub(boid.position, new Vec2(x, y));
+          const dist = offset.length();
+          if (dist < 130) {
+            const force = (1 - dist / 130) * 1.6;
+            offset.normalize().scale(force);
+            boid.velocity.add(offset);
+          }
+        }
+      }
+      refreshBirdTraits() {
+        const runtimeConfig = { ...this.config, runtimeGoldenEnabled: this.state.goldenRatioMode, runtimeLogisticEnabled: this.state.logisticPersonalityMode };
+        for (const boid of this.boids) boid.refreshFromConfig(runtimeConfig);
+        this.formationSystem.rebuildAssignments();
+      }
+      setConfigValue(key, value) {
+        this.config[key] = value;
+        if (key === 'minimumCruiseSpeed' && this.config.minimumCruiseSpeed > this.config.maximumFlightSpeed) this.config.maximumFlightSpeed = this.config.minimumCruiseSpeed;
+        if (key === 'maximumFlightSpeed' && this.config.maximumFlightSpeed < this.config.minimumCruiseSpeed) this.config.minimumCruiseSpeed = this.config.maximumFlightSpeed;
+        if (key === 'flockSize') this.rebuildFlock();
+        else this.refreshBirdTraits();
+      }
+      setLevel(level) {
+        this.state.currentLevel = level;
+        localStorage.setItem(LEVEL_KEY, String(level));
+        this.enforceLevelRules();
+      }
+      enforceLevelRules() {
+        if (this.state.currentLevel === 1) {
+          this.state.goldenRatioMode = false;
+          this.state.logisticPersonalityMode = false;
+          this.config.goldenStyleStrength = 0;
+          this.config.goldenTurnBias = 0;
+          this.config.goldenSpeedShimmerDepth = 0;
+          this.config.goldenSpeedBoost = 0;
+          this.config.logisticPersonalityStrength = 0;
+        }
+        if (this.state.currentLevel === 2) {
+          if (this.config.goldenStyleStrength === 0) {
+            this.config.goldenStyleStrength = 0.66;
+            this.config.goldenTurnBias = 0.08;
+            this.config.goldenSpeedShimmerDepth = 0.18;
+            this.config.goldenSpeedBoost = 0.24;
+          }
+          this.state.goldenRatioMode = true;
+          this.state.logisticPersonalityMode = false;
+          this.config.logisticPersonalityStrength = 0;
+        }
+        if (this.state.currentLevel === 3) {
+          if (this.config.goldenStyleStrength === 0) this.config.goldenStyleStrength = 0.66;
+          if (this.config.logisticPersonalityStrength === 0) {
+            this.config.logisticPersonalityStrength = 0.72;
+            this.config.logisticChaosParameter = 3.86;
+          }
+          this.state.goldenRatioMode = true;
+          this.state.logisticPersonalityMode = true;
+        }
+        if (this.state.currentLevel === 4) {
+          if (this.config.goldenStyleStrength === 0) this.config.goldenStyleStrength = 0.66;
+          if (this.config.logisticPersonalityStrength === 0) this.config.logisticPersonalityStrength = 0.72;
+          this.state.goldenRatioMode = true;
+          this.state.logisticPersonalityMode = true;
+        }
+        if (this.state.currentLevel < 4) this.metrics.vQuality = 0;
+        this.refreshBirdTraits();
+      }
+      getSnapshotPayload() {
+        return {
+          config: { ...this.config },
+          state: {
+            trails: this.state.trails,
+            windAttract: this.state.windAttract,
+            goldenRatioMode: this.state.goldenRatioMode,
+            logisticPersonalityMode: this.state.logisticPersonalityMode,
+            skyId: this.skyPainter.current.id,
+            level: this.state.currentLevel
+          }
+        };
+      }
+      applySnapshotPayload(payload) {
+        if (!payload) return;
+        Object.assign(this.config, this.defaultConfig, payload.config || {});
+        if (payload.state) {
+          if (typeof payload.state.trails === 'boolean') this.state.trails = payload.state.trails;
+          if (typeof payload.state.windAttract === 'boolean') this.state.windAttract = payload.state.windAttract;
+          if (typeof payload.state.goldenRatioMode === 'boolean') this.state.goldenRatioMode = payload.state.goldenRatioMode;
+          if (typeof payload.state.logisticPersonalityMode === 'boolean') this.state.logisticPersonalityMode = payload.state.logisticPersonalityMode;
+          if (payload.state.skyId) {
+            const idx = this.skyPainter.skies.findIndex(s => s.id === payload.state.skyId);
+            if (idx >= 0) this.state.skyIndex = idx;
+          }
+          if (payload.state.level && LEVELS[payload.state.level]) this.state.currentLevel = payload.state.level;
+        }
+        this.rebuildFlock();
+        this.enforceLevelRules();
+      }
+      evaluateStyles() {
+        this.metrics.styleEval = this.styleLibrary.evaluate(this.config);
+      }
+      update(dt) {
+        const cfg = this.config;
+        const center = new Vec2(this.bounds.width * 0.5, this.bounds.height * 0.5);
+        const time = performance.now() * 0.001;
+        this.evaluateStyles();
+
+        for (let i = 0; i < this.boids.length; i++) {
+          const boid = this.boids[i];
+          boid.resetForce();
+          const traits = boid.traits;
+          const awarenessSq = traits.neighborAwarenessRadius * traits.neighborAwarenessRadius;
+          const personalSq = traits.minimumSeparationDistance * traits.minimumSeparationDistance;
+          let neighbours = 0;
+          const averagePosition = new Vec2();
+          const averageVelocity = new Vec2();
+          const separationForce = new Vec2();
+
+          for (let j = 0; j < this.boids.length; j++) {
+            if (i === j) continue;
+            const other = this.boids[j];
+            const dx = other.position.x - boid.position.x;
+            const dy = other.position.y - boid.position.y;
+            const dSq = dx * dx + dy * dy;
+            if (dSq > awarenessSq) continue;
+            neighbours++;
+            averagePosition.add(other.position);
+            averageVelocity.add(other.velocity);
+            if (dSq < personalSq && dSq > 1e-6) {
+              const away = Vec2.sub(boid.position, other.position);
+              away.normalize().scale(1 / Math.sqrt(dSq));
+              separationForce.add(away);
+            }
+          }
+
+          if (neighbours > 0) {
+            averagePosition.scale(1 / neighbours);
+            averageVelocity.scale(1 / neighbours);
+            const cohesionVector = Vec2.sub(averagePosition, boid.position);
+            const cohesionDistance = cohesionVector.length();
+            const cohesionForce = new Vec2();
+            if (cohesionDistance > 1e-6) {
+              const comfortRadius = traits.minimumSeparationDistance * 1.35;
+              const effectiveDistance = Math.max(0, cohesionDistance - comfortRadius);
+              const cappedDistance = Math.min(effectiveDistance, traits.neighborAwarenessRadius * 0.35);
+              cohesionForce.add(cohesionVector.normalize().scale(traits.cohesionStrength * cappedDistance * 0.02));
+            }
+            const alignmentForce = Vec2.sub(averageVelocity, boid.velocity).scale(traits.alignmentStrength);
+            separationForce.scale(traits.separationStrength);
+            boid.acceleration.add(cohesionForce).add(alignmentForce).add(separationForce);
+          }
+
+          const edge = new Vec2();
+          if (boid.position.x < cfg.edgeAwarenessBuffer) edge.x += 1;
+          else if (boid.position.x > this.bounds.width - cfg.edgeAwarenessBuffer) edge.x -= 1;
+          if (boid.position.y < cfg.edgeAwarenessBuffer) edge.y += 1;
+          else if (boid.position.y > this.bounds.height - cfg.edgeAwarenessBuffer) edge.y -= 1;
+          if (edge.lengthSq() > 0) boid.acceleration.add(edge.normalize().scale(cfg.edgeAvoidanceStrength));
+
+          if (this.leadersA.has(i)) boid.acceleration.x += cfg.scoutDriftStrength * traits.scoutDriftStrength;
+          else if (this.leadersB.has(i)) boid.acceleration.x -= cfg.scoutDriftStrength * traits.scoutDriftStrength;
+
+          if (this.pointer.down && this.pointer.inside) {
+            const toPointer = Vec2.sub(new Vec2(this.pointer.x, this.pointer.y), boid.position);
+            const dist = Math.max(1, toPointer.length());
+            toPointer.normalize().scale((this.state.windAttract ? 1 : -1) * cfg.pointerWindStrength * traits.pointerWindStrength * Math.min(1.2, 80 / dist));
+            boid.acceleration.add(toPointer);
+          }
+
+          boid.acceleration.add(Vec2.sub(center, boid.position).scale(0.00002));
+
+          if (this.state.currentLevel >= 2 && this.state.goldenRatioMode) {
+            const speed = Math.max(0.001, boid.velocity.length());
+            const nx = -boid.velocity.y / speed;
+            const ny = boid.velocity.x / speed;
+            const goldenShimmer = Math.sin(time * PHI + boid.goldenSeed * INV_PHI) + 0.65 * Math.cos(time * (1 + INV_PHI) + boid.goldenSeed * Math.sqrt(5));
+            const curve = goldenShimmer * traits.goldenTurnBias;
+            boid.turnMemory = boid.turnMemory * 0.982 + curve * 0.018;
+            boid.acceleration.x += nx * boid.turnMemory * 0.42;
+            boid.acceleration.y += ny * boid.turnMemory * 0.42;
+          }
+
+          if (this.state.currentLevel >= 3 && this.state.logisticPersonalityMode) {
+            const logisticTurn = (boid.logisticState - 0.5) * 2;
+            const speed = Math.max(0.001, boid.velocity.length());
+            boid.acceleration.x += (-boid.velocity.y / speed) * logisticTurn * 0.018;
+            boid.acceleration.y += (boid.velocity.x / speed) * logisticTurn * 0.018;
+          }
+
+          boid.acceleration.limit(traits.maximumSteeringForce);
+        }
+
+        this.formationSystem.apply(dt);
+
+        for (const boid of this.boids) {
+          const traits = boid.traits;
+          boid.velocity.add(boid.acceleration.clone().scale(dt * 60));
+          let speed = boid.velocity.length();
+          if (speed < 1e-5) {
+            boid.velocity = Vec2.fromAngle(Math.random() * Math.PI * 2, Math.max(0.05, traits.minimumCruiseSpeed));
+            speed = boid.velocity.length();
+          }
+          if (this.state.currentLevel >= 2 && this.state.goldenRatioMode) {
+            const shimmer = Math.sin(time * INV_PHI + boid.goldenSeed) * traits.goldenSpeedShimmerDepth;
+            const boost = Math.max(0, shimmer) * traits.goldenSpeedBoost;
+            const targetSpeed = Vec2.clamp(traits.minimumCruiseSpeed + boost, traits.minimumCruiseSpeed, traits.maximumFlightSpeed);
+            speed = Vec2.lerp(speed, targetSpeed, 0.08);
+            boid.velocity.normalize().scale(speed);
+          }
+          speed = boid.velocity.length();
+          if (speed > traits.maximumFlightSpeed) boid.velocity.scale(traits.maximumFlightSpeed / speed);
+          speed = boid.velocity.length();
+          if (speed < traits.minimumCruiseSpeed && speed > 1e-8) boid.velocity.scale(traits.minimumCruiseSpeed / speed);
+          if (![boid.position.x, boid.position.y, boid.velocity.x, boid.velocity.y].every(Number.isFinite)) {
+            boid.position.set(Math.random() * this.bounds.width, Math.random() * this.bounds.height);
+            boid.velocity = Vec2.fromAngle(Math.random() * Math.PI * 2, Math.max(0.05, traits.minimumCruiseSpeed || 1));
+            boid.acceleration.set(0, 0);
+            boid.turnMemory = 0;
+            continue;
+          }
+          boid.position.add(boid.velocity.clone().scale(dt * 60));
+          boid.phase += boid.flapRate * dt;
+
+          if (boid.isLeader) boid.fatigue = Vec2.clamp(boid.fatigue + dt * 0.03, 0, 1.6);
+          else boid.fatigue = Vec2.clamp(boid.fatigue - dt * 0.02, 0, 1.6);
+
+          if (boid.position.x < -25) boid.position.x = this.bounds.width + 25;
+          if (boid.position.x > this.bounds.width + 25) boid.position.x = -25;
+          if (boid.position.y < -25) boid.position.y = this.bounds.height + 25;
+          if (boid.position.y > this.bounds.height + 25) boid.position.y = -25;
+        }
+      }
+      draw() {
+        const ctx = this.ctx;
+        if (!this.state.trails) {
+          this.skyPainter.drawBackground();
+        } else {
+          ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(7,12,24,0.06)' : 'rgba(255,255,255,0.05)';
+          ctx.fillRect(0, 0, this.bounds.width, this.bounds.height);
+        }
+        for (const boid of this.boids) this.renderer.draw(boid);
+        if (this.pointer.down && this.pointer.inside) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          ctx.arc(this.pointer.x, this.pointer.y, 26, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (this.state.paused) {
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.fillRect(0, 0, this.bounds.width, this.bounds.height);
+          ctx.fillStyle = 'rgba(255,255,255,0.96)';
+          ctx.font = '28px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Paused', this.bounds.width / 2, this.bounds.height / 2);
+        }
+      }
+      loop = (timestamp = 0) => {
+        requestAnimationFrame(this.loop);
+        if (timestamp - this.lastFrame < this.frameTime) return;
+        const dt = Math.min(0.03, Math.max(0.001, (timestamp - this.lastTimestamp) / 1000 || 1 / 60));
+        this.lastTimestamp = timestamp;
+        this.lastFrame = timestamp;
+        if (!this.state.paused) this.update(dt);
+        this.draw();
+      }
+    }
+
+    class UIController {
+      constructor(simulation) {
+        this.simulation = simulation;
+        this.controlsEl = document.getElementById('controls');
+        this.saveListEl = document.getElementById('saveList');
+        this.statusCard = document.getElementById('statusCard');
+        this.legendBox = document.getElementById('legendBox');
+        this.levelButtons = document.getElementById('levelButtons');
+        this.refs = new Map();
+      }
+      buildLevelButtons() {
+        this.levelButtons.innerHTML = '';
+        Object.entries(LEVELS).forEach(([level, meta]) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-level';
+          btn.innerHTML = `${meta.label}<br><span style="font-size:.72rem;opacity:.82">${meta.subtitle}</span>`;
+          btn.addEventListener('click', () => {
+            this.simulation.setLevel(Number(level));
+            this.build();
+            this.sync();
+          });
+          this.levelButtons.appendChild(btn);
+        });
+      }
+      build() {
+        this.buildLevelButtons();
+        this.controlsEl.innerHTML = '';
+        this.refs.clear();
+        const currentLevel = this.simulation.state.currentLevel;
+        for (const def of SLIDER_DEFS.filter(item => item.level <= currentLevel)) {
+          const card = document.createElement('div');
+          card.className = 'slider-card';
+          const top = document.createElement('div');
+          top.className = 'slider-top';
+          const left = document.createElement('div');
+          left.innerHTML = `<div class="slider-label">${def.label}</div><div class="slider-hint">${def.hint}</div>`;
+          const value = document.createElement('div');
+          value.className = 'value-pill';
+          const input = document.createElement('input');
+          input.type = 'range';
+          input.className = 'form-range';
+          input.min = def.min;
+          input.max = def.max;
+          input.step = def.step;
+          input.value = this.simulation.config[def.key];
+          const refresh = () => {
+            value.textContent = def.fmt(Number(input.value));
+            const min = Number(input.min), max = Number(input.max), val = Number(input.value);
+            input.style.setProperty('--pct', (((val - min) / (max - min || 1)) * 100) + '%');
+          };
+          input.addEventListener('input', () => {
+            const parsed = def.step >= 1 ? parseInt(input.value, 10) : parseFloat(input.value);
+            this.simulation.setConfigValue(def.key, parsed);
+            if (def.reinit) this.simulation.rebuildFlock();
+            this.sync();
+          });
+          refresh();
+          top.appendChild(left);
+          top.appendChild(value);
+          card.appendChild(top);
+          card.appendChild(input);
+          this.controlsEl.appendChild(card);
+          this.refs.set(def.key, { input, refresh });
+        }
+        this.renderSaveList();
+      }
+      renderSaveList() {
+        const items = SnapshotStore.getAll();
+        const def = SnapshotStore.getDefault();
+        if (!items.length) {
+          this.saveListEl.innerHTML = `<div class="slider-hint">No snapshots yet.</div>`;
+          return;
+        }
+        this.saveListEl.innerHTML = '';
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'save-row';
+          const meta = document.createElement('div');
+          meta.innerHTML = `<div class="save-name">${item.name}</div><div class="save-tag">${def === item.name ? 'Default snapshot' : new Date(item.createdAt).toLocaleString()}</div>`;
+          const loadBtn = document.createElement('button');
+          loadBtn.className = 'tiny-btn primary';
+          loadBtn.textContent = 'Load';
+          loadBtn.onclick = () => { this.simulation.applySnapshotPayload(item.payload); this.build(); this.sync(); };
+          const defaultBtn = document.createElement('button');
+          defaultBtn.className = 'tiny-btn';
+          defaultBtn.textContent = def === item.name ? 'Default ✓' : 'Set default';
+          defaultBtn.onclick = () => { SnapshotStore.setDefault(item.name); this.renderSaveList(); };
+          const delBtn = document.createElement('button');
+          delBtn.className = 'tiny-btn';
+          delBtn.textContent = 'Delete';
+          delBtn.onclick = () => { SnapshotStore.remove(item.name); this.renderSaveList(); };
+          row.append(meta, loadBtn, defaultBtn, delBtn);
+          this.saveListEl.appendChild(row);
+        });
+      }
+      updateStatus() {
+        const level = this.simulation.state.currentLevel;
+        const evalResult = this.simulation.metrics.styleEval || this.simulation.styleLibrary.evaluate(this.simulation.config);
+        const styleName = evalResult?.style?.name || 'n/a';
+        const scorePct = Math.round((evalResult?.score || 0) * 100);
+        const vPct = Math.round((this.simulation.metrics.vQuality || 0) * 100);
+        const pass = !!evalResult?.pass;
+        let body = '';
+        if (level === 1) {
+          body = `
+            <div class="section-title">Level 1 objective</div>
+            <div class="section-sub">Classic Boids only. Get within 10% of one of the community realism targets.</div>
+            <div>Nearest community flight style: <span class="status-strong">${styleName}</span></div>
+            <div>Match score: <span class="status-strong ${pass ? 'status-good' : 'status-warn'}">${scorePct}%</span></div>
+            <div>${pass ? 'Level clear condition met.' : 'Still outside tolerance on at least one slider.'}</div>
+          `;
+          this.legendBox.textContent = 'Level 1 is plain flocking only: separation, alignment, cohesion, edge handling, and basic flight limits.';
+        } else if (level === 2) {
+          body = `
+            <div class="section-title">Level 2 objective</div>
+            <div class="section-sub">Golden ratio styling is now unlocked, but this is still not the logistic-map layer yet.</div>
+            <div>Base realism anchor: <span class="status-strong">${styleName}</span> (${scorePct}%)</div>
+            <div>Golden ratio mode is <span class="status-strong">${this.simulation.state.goldenRatioMode ? 'on' : 'off'}</span>.</div>
+            <div>Use this level to add φ-flavoured turn feel and shimmer without changing each bird’s core personality too aggressively.</div>
+          `;
+          this.legendBox.textContent = 'Level 2 adds golden-ratio styling: turn bias, shimmer depth, shimmer boost, and a gentle φ-based flavour layer.';
+        } else if (level === 3) {
+          body = `
+            <div class="section-title">Level 3 objective</div>
+            <div class="section-sub">Logistic-map personality is now unlocked. This is the chaotic per-bird individuality layer.</div>
+            <div>Base realism anchor: <span class="status-strong">${styleName}</span> (${scorePct}%)</div>
+            <div>Golden ratio mode: <span class="status-strong">${this.simulation.state.goldenRatioMode ? 'on' : 'off'}</span> • Logistic personality: <span class="status-strong">${this.simulation.state.logisticPersonalityMode ? 'on' : 'off'}</span></div>
+            <div>Each bird now gets its own personality offsets around the flock baseline instead of feeling cloned.</div>
+          `;
+          this.legendBox.textContent = 'Level 3 keeps the classic boids base, keeps optional φ-styling, and adds logistic-map personality offsets to each bird.';
+        } else {
+          body = `
+            <div class="section-title">Level 4 objective</div>
+            <div class="section-sub">Tune the decision layer until the flock holds a clean V.</div>
+            <div>V quality: <span class="status-strong ${vPct >= 70 ? 'status-good' : 'status-warn'}">${vPct}%</span></div>
+            <div>Base realism anchor: <span class="status-strong">${styleName}</span> (${scorePct}%)</div>
+            <div>Try higher formation slot commitment, wake avoidance strength, and V formation bias for a tighter formation.</div>
+          `;
+          this.legendBox.textContent = 'Level 4 adds a slot-seeking aerodynamic V layer on top of the lower levels, with leader rotation and wake avoidance.';
+        }
+        this.statusCard.innerHTML = body;
+      }
+      sync() {
+        for (const [key, ref] of this.refs.entries()) {
+          ref.input.value = this.simulation.config[key];
+          ref.refresh();
+        }
+        [...this.levelButtons.children].forEach((btn, idx) => {
+          btn.classList.toggle('active', idx + 1 === this.simulation.state.currentLevel);
+        });
+        document.getElementById('toggleTrails').textContent = `Trails: ${this.simulation.state.trails ? 'on' : 'off'}`;
+        document.getElementById('toggleWind').textContent = `Wind: ${this.simulation.state.windAttract ? 'attract' : 'repel'}`;
+        document.getElementById('toggleGolden').textContent = `Golden ratio mode: ${this.simulation.state.goldenRatioMode ? 'on' : 'off'}`;
+        document.getElementById('toggleGolden').disabled = this.simulation.state.currentLevel < 2;
+        document.getElementById('toggleLogistic').textContent = `Logistic personality: ${this.simulation.state.logisticPersonalityMode ? 'on' : 'off'}`;
+        document.getElementById('toggleLogistic').disabled = this.simulation.state.currentLevel < 3;
+        document.getElementById('cycleSky').textContent = `Sky: ${this.simulation.skyPainter.current.label}`;
+        this.updateStatus();
+      }
+    }
+
+    class App {
+      constructor() {
+        this.sim = new BoidSimulation(document.getElementById('scene'));
+        this.ui = new UIController(this.sim);
+        this.ui.build();
+        this.restoreDarkMode();
+        this.bindButtons();
+        this.applyStartupSnapshot();
+        this.ui.sync();
+        requestAnimationFrame(this.sim.loop);
+      }
+      restoreDarkMode() {
+        const on = localStorage.getItem(DARK_MODE_KEY) === '1';
+        document.body.classList.toggle('dark-mode', on);
+        document.getElementById('darkModeBtn').textContent = `Dark mode: ${on ? 'on' : 'off'}`;
+      }
+      toggleDarkMode() {
+        const next = !document.body.classList.contains('dark-mode');
+        document.body.classList.toggle('dark-mode', next);
+        localStorage.setItem(DARK_MODE_KEY, next ? '1' : '0');
+        document.getElementById('darkModeBtn').textContent = `Dark mode: ${next ? 'on' : 'off'}`;
+      }
+      applyStartupSnapshot() {
+        const name = SnapshotStore.getDefault();
+        const item = name ? SnapshotStore.find(name) : null;
+        if (item) {
+          this.sim.applySnapshotPayload(item.payload);
+          this.ui.build();
+        }
+        this.ui.sync();
+      }
+      saveSnapshot() {
+        const input = document.getElementById('saveNameInput');
+        const name = (input.value || '').trim() || `Snapshot ${new Date().toLocaleString()}`;
+        SnapshotStore.save(name, this.sim.getSnapshotPayload());
+        input.value = '';
+        this.ui.renderSaveList();
+      }
+      exportSnapshot() {
+        const payload = this.sim.getSnapshotPayload();
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `flappy_happy_snapshot_${Date.now()}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 500);
+      }
+      bindButtons() {
+        document.getElementById('toggleTrails').addEventListener('click', () => { this.sim.state.trails = !this.sim.state.trails; this.ui.sync(); });
+        document.getElementById('toggleWind').addEventListener('click', () => { this.sim.state.windAttract = !this.sim.state.windAttract; this.ui.sync(); });
+        document.getElementById('toggleGolden').addEventListener('click', () => {
+          if (this.sim.state.currentLevel < 2) return;
+          this.sim.state.goldenRatioMode = !this.sim.state.goldenRatioMode;
+          this.sim.refreshBirdTraits();
+          this.ui.sync();
+        });
+        document.getElementById('toggleLogistic').addEventListener('click', () => {
+          if (this.sim.state.currentLevel < 3) return;
+          this.sim.state.logisticPersonalityMode = !this.sim.state.logisticPersonalityMode;
+          this.sim.refreshBirdTraits();
+          this.ui.sync();
+        });
+        document.getElementById('presetNatural').addEventListener('click', () => { this.sim.applyPreset('natural'); this.ui.sync(); });
+        document.getElementById('presetGlide').addEventListener('click', () => { this.sim.applyPreset('glide'); this.ui.sync(); });
+        document.getElementById('cycleSky').addEventListener('click', () => { this.sim.cycleSky(); this.ui.sync(); });
+        document.getElementById('darkModeBtn').addEventListener('click', () => this.toggleDarkMode());
+        document.getElementById('toggleSavePanel').addEventListener('click', () => {
+          const p = document.getElementById('savePanel');
+          p.classList.toggle('hidden');
+        });
+        document.getElementById('saveSnapshot').addEventListener('click', () => this.saveSnapshot());
+        document.getElementById('exportSnapshot').addEventListener('click', () => this.exportSnapshot());
+        document.getElementById('openStart').addEventListener('click', () => document.getElementById('startOverlay').classList.add('show'));
+        document.getElementById('openEquations').addEventListener('click', () => document.getElementById('equationsOverlay').classList.add('show'));
+        document.getElementById('closeEquations').addEventListener('click', () => document.getElementById('equationsOverlay').classList.remove('show'));
+        document.getElementById('startNewGame').addEventListener('click', () => { this.sim.reset(); this.ui.build(); this.ui.sync(); document.getElementById('startOverlay').classList.remove('show'); });
+        document.getElementById('startContinue').addEventListener('click', () => document.getElementById('startOverlay').classList.remove('show'));
+        document.getElementById('startExplore').addEventListener('click', () => { document.getElementById('startOverlay').classList.remove('show'); document.getElementById('savePanel').classList.remove('hidden'); });
+        document.getElementById('startEquations').addEventListener('click', () => document.getElementById('equationsOverlay').classList.add('show'));
+        document.getElementById('startOverlay').addEventListener('click', (e) => { if (e.target.id === 'startOverlay') document.getElementById('startOverlay').classList.remove('show'); });
+        document.getElementById('equationsOverlay').addEventListener('click', (e) => { if (e.target.id === 'equationsOverlay') document.getElementById('equationsOverlay').classList.remove('show'); });
+      }
+    }
+
+    new App();
+  </script>
+</body>
+</html>
