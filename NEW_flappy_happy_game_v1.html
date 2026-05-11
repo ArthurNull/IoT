@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Featherfield Preserve MVP</title>
+
+  <style>
+    :root {
+      --bg: #eef8df;
+      --panel: rgba(255, 255, 255, 0.88);
+      --panel-solid: #fffaf0;
+      --text: #2c3a2f;
+      --muted: #66745f;
+      --green: #69b578;
+      --green-dark: #3f8f54;
+      --gold: #e6aa3c;
+      --blue: #5ba7d8;
+      --danger: #d76b5d;
+      --shadow: 0 12px 35px rgba(43, 75, 52, 0.18);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 247, 178, 0.55), transparent 34%),
+        linear-gradient(180deg, #dff4ff 0%, #eef8df 60%, #d8efc1 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1.2fr auto;
+      gap: 12px;
+      align-items: center;
+      z-index: 5;
+    }
+
+    .brand-card,
+    .stats-card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .brand-card {
+      padding: 14px 18px;
+    }
+
+    .brand-card h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2.4vw, 2rem);
+      line-height: 1.05;
+    }
+
+    .brand-card p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .stats-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .xp-shell {
+      width: 160px;
+      height: 13px;
+      background: rgba(61, 95, 72, 0.14);
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .xp-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #74cf82, #f3c14f);
+      border-radius: inherit;
+      transition: width 220ms ease;
+    }
+
+    .button {
+      border: 0;
+      padding: 9px 13px;
+      border-radius: 999px;
+      color: white;
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(63, 143, 84, 0.25);
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .button.secondary {
+      background: linear-gradient(180deg, #73b9de, #4d91be);
+      box-shadow: 0 7px 16px rgba(77, 145, 190, 0.25);
+    }
+
+    .button.warn {
+      background: linear-gradient(180deg, #e18474, #c9574b);
+      box-shadow: 0 7px 16px rgba(201, 87, 75, 0.2);
+    }
+
+    .game-shell {
+      position: relative;
+      min-height: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(49, 86, 56, 0.25);
+      border: 4px solid rgba(255, 255, 255, 0.8);
+      background: #bee7ff;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: none;
+      touch-action: none;
+    }
+
+    .hint-card {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      pointer-events: none;
+    }
+
+    .hint-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .hint-card span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .toast-stack {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      display: grid;
+      gap: 8px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .toast {
+      width: min(390px, calc(100vw - 60px));
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      animation: popIn 180ms ease both;
+    }
+
+    .toast h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+    }
+
+    .toast p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(28, 48, 34, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.show {
+      display: grid;
+    }
+
+    .modal {
+      width: min(980px, 100%);
+      max-height: min(780px, 92vh);
+      overflow: auto;
+      background: var(--panel-solid);
+      border-radius: 28px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+    }
+
+    .modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px;
+      background: rgba(255, 250, 240, 0.96);
+      border-bottom: 1px solid rgba(76, 93, 65, 0.13);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .modal-body {
+      padding: 18px 20px 22px;
+    }
+
+    .close-button {
+      border: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: #f0dec5;
+      color: #5e4b34;
+      font-size: 1.2rem;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+    }
+
+    .item-card {
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+      border: 1px solid rgba(76, 93, 65, 0.12);
+      box-shadow: 0 8px 22px rgba(43, 75, 52, 0.08);
+    }
+
+    .item-card h3 {
+      margin: 0 0 6px;
+    }
+
+    .item-card p {
+      color: var(--muted);
+      margin: 6px 0;
+      line-height: 1.4;
+    }
+
+    .item-card .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #eef7e8;
+      color: #3d774d;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .tag.common {
+      background: #edf8e9;
+      color: #4e8f49;
+    }
+
+    .tag.uncommon {
+      background: #e7f4ff;
+      color: #3b7eab;
+    }
+
+    .tag.rare {
+      background: #f1e8ff;
+      color: #7350b6;
+    }
+
+    .tag.epic {
+      background: #fff0fb;
+      color: #b84ca2;
+    }
+
+    .locked {
+      filter: grayscale(0.7);
+      opacity: 0.7;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-weight: 900;
+      background: #e9f6df;
+      color: #356c43;
+    }
+
+    .mini-button.primary {
+      background: var(--green);
+      color: white;
+    }
+
+    .mini-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    @media (max-width: 820px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-card {
+        justify-content: flex-start;
+      }
+
+      .game-shell {
+        height: 68vh;
+        min-height: 480px;
+      }
+
+      .hint-card {
+        right: 12px;
+        left: 12px;
+        bottom: 12px;
+      }
+    }
+
+    @media (min-width: 821px) {
+      .game-shell {
+        height: 100%;
+      }
+    }
+
+    .landing-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 247, 178, 0.55), transparent 34%),
+        linear-gradient(180deg, #dff4ff 0%, #eef8df 60%, #d8efc1 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .landing-page.hidden {
+      display: none;
+    }
+
+    .landing-content {
+      text-align: center;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 48px 32px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      animation: slideUp 600ms ease both;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .landing-content h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+
+    .landing-content .subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted);
+      margin: 0 0 28px;
+      font-weight: 600;
+    }
+
+    .landing-content p {
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0 0 32px;
+    }
+
+    .landing-content .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+      text-align: left;
+    }
+
+    .feature-item {
+      padding: 16px;
+      background: rgba(105, 181, 120, 0.1);
+      border-radius: 16px;
+      border: 1px solid rgba(105, 181, 120, 0.2);
+    }
+
+    .feature-item strong {
+      display: block;
+      color: var(--green-dark);
+      margin-bottom: 4px;
+    }
+
+    .feature-item span {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .landing-content .start-button {
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(63, 143, 84, 0.25);
+      border: 0;
+      padding: 16px 48px;
+      border-radius: 999px;
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+      margin-top: 24px;
+    }
+
+    .landing-content .start-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .landing-content .start-button:active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="landing-page" id="landingPage">
+    <div class="landing-content">
+      <h1>Featherfield Preserve</h1>
+      <p class="subtitle">Safely catch, study, and release birds in a cozy meadow sanctuary.</p>
+      
+      <div class="features">
+        <div class="feature-item">
+          <strong>🐦 Catch</strong>
+          <span>Gently net birds in the meadow</span>
+        </div>
+        <div class="feature-item">
+          <strong>📚 Study</strong>
+          <span>Build your field guide collection</span>
+        </div>
+        <div class="feature-item">
+          <strong>🎯 Progress</strong>
+          <span>Level up and unlock new nets</span>
+        </div>
+        <div class="feature-item">
+          <strong>✨ Explore</strong>
+          <span>Discover rare and epic birds</span>
+        </div>
+      </div>
+
+      <p>Hover your net over a bird and click to catch. Rarer birds are faster and harder to catch.</p>
+      
+      <button class="start-button" id="startGameButton">Play Now</button>
+    </div>
+  </div>
+
+  <main class="app">
+    <section class="topbar">
+      <div class="brand-card">
+        <h1>Featherfield Preserve</h1>
+        <p>Safely catch, study, and release birds in a cozy meadow sanctuary.</p>
+      </div>
+
+      <div class="stats-card">
+        <span class="pill">Lv. <span id="levelText">1</span></span>
+        <span class="pill">
+          XP
+          <span class="xp-shell">
+            <span class="xp-fill" id="xpFill"></span>
+          </span>
+          <span id="xpText">0 / 75</span>
+        </span>
+        <span class="pill">🪙 <span id="coinText">0</span></span>
+        <span class="pill">Net: <span id="netText">Starter</span></span>
+        <button class="button" id="storeButton">Store</button>
+        <button class="button secondary" id="guideButton">Field Guide</button>
+        <button class="button warn" id="resetButton">Reset</button>
+      </div>
+    </section>
+
+    <section class="game-shell">
+      <canvas id="gameCanvas" aria-label="Bird preserve game canvas"></canvas>
+
+      <div class="toast-stack" id="toastStack"></div>
+
+      <div class="hint-card">
+        <strong>How to play</strong>
+        <span>
+          Move your mouse or finger to aim the gentle net. Click or tap when a bird is inside the circle.
+          Rare birds are faster and more alert.
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modalTitle">Modal</h2>
+        <button class="close-button" id="closeModalButton" aria-label="Close modal">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "featherfield_preserve_mvp_v1";
+
+      const RARITY = {
+        common: {
+          label: "Common",
+          color: "#76b96f",
+          glow: "rgba(118, 185, 111, 0.16)"
+        },
+        uncommon: {
+          label: "Uncommon",
+          color: "#4aa3d4",
+          glow: "rgba(74, 163, 212, 0.18)"
+        },
+        rare: {
+          label: "Rare",
+          color: "#8d68d8",
+          glow: "rgba(141, 104, 216, 0.2)"
+        },
+        epic: {
+          label: "Epic",
+          color: "#d957c0",
+          glow: "rgba(217, 87, 192, 0.26)"
+        }
+      };
+
+      const BIRDS = [
+        {
+          id: "brown_sparrow",
+          name: "Brown Sparrow",
+          rarity: "common",
+          spawnWeight: 54,
+          size: 15,
+          speed: 34,
+          catchDifficulty: 8,
+          alertRate: 0.14,
+          xp: 8,
+          coins: 5,
+          body: "#9b7254",
+          wing: "#7a563e",
+          note: "A calm meadow visitor. Often seen hopping through wild grass."
+        },
+        {
+          id: "meadow_finch",
+          name: "Meadow Finch",
+          rarity: "common",
+          spawnWeight: 38,
+          size: 14,
+          speed: 42,
+          catchDifficulty: 11,
+          alertRate: 0.18,
+          xp: 10,
+          coins: 6,
+          body: "#d7a85d",
+          wing: "#a7793f",
+          note: "Small, quick, and curious. Loves flower patches."
+        },
+        {
+          id: "blue_jaylet",
+          name: "Blue Jaylet",
+          rarity: "uncommon",
+          spawnWeight: 18,
+          size: 16,
+          speed: 58,
+          catchDifficulty: 20,
+          alertRate: 0.25,
+          xp: 18,
+          coins: 12,
+          body: "#4e9fd8",
+          wing: "#276b9e",
+          note: "Turns sharply when startled. Easier to catch with good timing."
+        },
+        {
+          id: "golden_robin",
+          name: "Golden Robin",
+          rarity: "rare",
+          spawnWeight: 6,
+          size: 17,
+          speed: 72,
+          catchDifficulty: 34,
+          alertRate: 0.34,
+          xp: 45,
+          coins: 35,
+          body: "#e3a93d",
+          wing: "#b87523",
+          note: "A cautious rare bird. Appears briefly when the meadow is peaceful."
+        },
+        {
+          id: "aurora_dove",
+          name: "Aurora Dove",
+          rarity: "epic",
+          spawnWeight: 1,
+          size: 19,
+          speed: 82,
+          catchDifficulty: 48,
+          alertRate: 0.42,
+          xp: 120,
+          coins: 100,
+          body: "#f4b7ea",
+          wing: "#88d8e8",
+          note: "A shimmering epic bird said to visit only patient rangers."
+        }
+      ];
+
+      const NETS = [
+        {
+          id: "starter",
+          name: "Starter Net",
+          shortName: "Starter",
+          cost: 0,
+          unlockLevel: 1,
+          radius: 58,
+          cooldownMs: 950,
+          baseCatchChance: 76,
+          rareBonus: 0,
+          stealth: 0,
+          description: "A balanced gentle net for beginner sanctuary work."
+        },
+        {
+          id: "wide",
+          name: "Wide Net",
+          shortName: "Wide",
+          cost: 100,
+          unlockLevel: 2,
+          radius: 82,
+          cooldownMs: 1350,
+          baseCatchChance: 72,
+          rareBonus: -2,
+          stealth: 0,
+          description: "A larger catch circle. Great for learning, but slower between throws."
+        },
+        {
+          id: "quick",
+          name: "Quick Net",
+          shortName: "Quick",
+          cost: 150,
+          unlockLevel: 3,
+          radius: 45,
+          cooldownMs: 560,
+          baseCatchChance: 78,
+          rareBonus: 0,
+          stealth: 0,
+          description: "A fast net for active players. Smaller radius, much shorter cooldown."
+        },
+        {
+          id: "silent",
+          name: "Silent Net",
+          shortName: "Silent",
+          cost: 280,
+          unlockLevel: 4,
+          radius: 60,
+          cooldownMs: 1050,
+          baseCatchChance: 78,
+          rareBonus: 8,
+          stealth: 0.35,
+          description: "A quiet net that reduces bird stress and helps with rare birds."
+        }
+      ];
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const landingPage = document.getElementById("landingPage");
+      const startGameButton = document.getElementById("startGameButton");
+      const app = document.querySelector(".app");
+
+      const levelText = document.getElementById("levelText");
+      const xpFill = document.getElementById("xpFill");
+      const xpText = document.getElementById("xpText");
+      const coinText = document.getElementById("coinText");
+      const netText = document.getElementById("netText");
+      const storeButton = document.getElementById("storeButton");
+      const guideButton = document.getElementById("guideButton");
+      const resetButton = document.getElementById("resetButton");
+
+      const modalBackdrop = document.getElementById("modalBackdrop");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalBody = document.getElementById("modalBody");
+      const closeModalButton = document.getElementById("closeModalButton");
+      const toastStack = document.getElementById("toastStack");
+
+      let width = 900;
+      let height = 600;
+      let lastTime = performance.now();
+      let spawnTimer = 0;
+      let nextSpawnDelay = random(650, 1450);
+      let nextThrowAt = 0;
+      let cooldownPulse = 0;
+
+      const pointer = {
+        x: width / 2,
+        y: height / 2,
+        active: false
+      };
+
+      let birds = [];
+      let floatingTexts = [];
+
+      let save = loadSave();
+
+      function createDefaultSave() {
+        const collection = {};
+
+        for (const bird of BIRDS) {
+          collection[bird.id] = {
+            discovered: false,
+            totalCaught: 0,
+            bestQuality: null,
+            firstCaughtAt: null
+          };
+        }
+
+        return {
+          xp: 0,
+          coins: 0,
+          equippedNetId: "starter",
+          ownedNetIds: ["starter"],
+          collection,
+          totalCatches: 0
+        };
+      }
+
+      function loadSave() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : null;
+          const base = createDefaultSave();
+
+          if (!parsed || typeof parsed !== "object") {
+            return base;
+          }
+
+          const merged = {
+            ...base,
+            ...parsed,
+            collection: {
+              ...base.collection,
+              ...(parsed.collection || {})
+            },
+            ownedNetIds: Array.isArray(parsed.ownedNetIds) && parsed.ownedNetIds.length
+              ? parsed.ownedNetIds
+              : ["starter"]
+          };
+
+          if (!NETS.some((net) => net.id === merged.equippedNetId)) {
+            merged.equippedNetId = "starter";
+          }
+
+          if (!merged.ownedNetIds.includes("starter")) {
+            merged.ownedNetIds.push("starter");
+          }
+
+          return merged;
+        } catch (error) {
+          console.warn("Save could not be loaded. Starting fresh.", error);
+          return createDefaultSave();
+        }
+      }
+
+      function writeSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+      }
+
+      function xpRequiredForLevel(level) {
+        return Math.floor(75 * Math.pow(level, 1.45));
+      }
+
+      function getLevelInfo(totalXp) {
+        let level = 1;
+        let remaining = totalXp;
+
+        while (remaining >= xpRequiredForLevel(level)) {
+          remaining -= xpRequiredForLevel(level);
+          level += 1;
+        }
+
+        return {
+          level,
+          current: remaining,
+          needed: xpRequiredForLevel(level)
+        };
+      }
+
+      function getEquippedNet() {
+        return NETS.find((net) => net.id === save.equippedNetId) || NETS[0];
+      }
+
+      function getBirdById(id) {
+        return BIRDS.find((bird) => bird.id === id);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function random(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(random(min, max + 1));
+      }
+
+      function distance(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+        width = Math.max(320, rect.width);
+        height = Math.max(420, rect.height);
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function chooseWeightedBird() {
+        const level = getLevelInfo(save.xp).level;
+
+        const availableBirds = BIRDS.filter((bird) => {
+          if (bird.rarity === "epic") return level >= 3;
+          if (bird.rarity === "rare") return level >= 2;
+          return true;
+        });
+
+        const totalWeight = availableBirds.reduce((sum, bird) => sum + bird.spawnWeight, 0);
+        let roll = Math.random() * totalWeight;
+
+        for (const bird of availableBirds) {
+          roll -= bird.spawnWeight;
+          if (roll <= 0) return bird;
+        }
+
+        return availableBirds[0];
+      }
+
+      function spawnBird() {
+        const data = chooseWeightedBird();
+        const edgePadding = 46;
+        const x = random(edgePadding, width - edgePadding);
+        const y = random(80, height - 86);
+        const angle = random(0, Math.PI * 2);
+        const speed = data.speed * random(0.82, 1.18);
+
+        birds.push({
+          uid: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+          data,
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed * 0.62,
+          size: data.size,
+          alert: 0,
+          state: "foraging",
+          age: 0,
+          flap: random(0, Math.PI * 2),
+          turnTimer: random(0.6, 1.8),
+          lifeLimit: data.rarity === "epic" ? random(9, 14) : data.rarity === "rare" ? random(12, 18) : random(18, 28)
+        });
+      }
+
+      function updateBirds(dt) {
+        const net = getEquippedNet();
+
+        for (const bird of birds) {
+          bird.age += dt;
+          bird.flap += dt * 8;
+          bird.turnTimer -= dt;
+
+          const pointerDistance = distance(pointer.x, pointer.y, bird.x, bird.y);
+          const stressRange = net.radius + 40;
+
+          if (pointer.active && pointerDistance < stressRange) {
+            const stressMultiplier = 1 - net.stealth;
+            bird.alert += bird.data.alertRate * stressMultiplier * dt * 2.7;
+          } else {
+            bird.alert -= dt * 0.08;
+          }
+
+          bird.alert = clamp(bird.alert, 0, 1.6);
+
+          if (bird.turnTimer <= 0 && bird.state !== "fleeing") {
+            const turn = random(-0.9, 0.9);
+            const currentAngle = Math.atan2(bird.vy, bird.vx);
+            const nextAngle = currentAngle + turn;
+            const speed = bird.data.speed * random(0.78, 1.28) * (1 + bird.alert * 0.45);
+
+            bird.vx = Math.cos(nextAngle) * speed;
+            bird.vy = Math.sin(nextAngle) * speed * 0.62;
+            bird.turnTimer = random(0.45, 1.7);
+          }
+
+          if (
+            bird.age > bird.lifeLimit ||
+            (bird.alert > 1.24 && (bird.data.rarity === "rare" || bird.data.rarity === "epic"))
+          ) {
+            bird.state = "fleeing";
+          }
+
+          if (bird.state === "fleeing") {
+            bird.vy -= 110 * dt;
+            bird.vx += bird.vx > 0 ? 22 * dt : -22 * dt;
+          }
+
+          bird.x += bird.vx * dt;
+          bird.y += bird.vy * dt;
+
+          if (bird.state !== "fleeing") {
+            if (bird.x < 32) {
+              bird.x = 32;
+              bird.vx = Math.abs(bird.vx);
+            }
+
+            if (bird.x > width - 32) {
+              bird.x = width - 32;
+              bird.vx = -Math.abs(bird.vx);
+            }
+
+            if (bird.y < 72) {
+              bird.y = 72;
+              bird.vy = Math.abs(bird.vy);
+            }
+
+            if (bird.y > height - 58) {
+              bird.y = height - 58;
+              bird.vy = -Math.abs(bird.vy);
+            }
+          }
+        }
+
+        birds = birds.filter((bird) => {
+          const margin = 140;
+          return bird.x > -margin && bird.x < width + margin && bird.y > -margin && bird.y < height + margin;
+        });
+      }
+
+      function updateFloatingTexts(dt) {
+        for (const text of floatingTexts) {
+          text.age += dt;
+          text.y -= dt * 34;
+          text.alpha = 1 - text.age / text.life;
+        }
+
+        floatingTexts = floatingTexts.filter((text) => text.age < text.life);
+      }
+
+      function updateSpawning(dt) {
+        spawnTimer += dt * 1000;
+
+        const maxBirds = width < 600 ? 5 : 7;
+
+        if (birds.length < maxBirds && spawnTimer >= nextSpawnDelay) {
+          spawnBird();
+          spawnTimer = 0;
+          nextSpawnDelay = random(700, 1700);
+        }
+      }
+
+      function attemptCatch() {
+        const now = performance.now();
+        const net = getEquippedNet();
+
+        if (now < nextThrowAt) {
+          cooldownPulse = 1;
+          showToast("Net cooling down", "Give the birds a calm moment before the next throw.");
+          return;
+        }
+
+        nextThrowAt = now + net.cooldownMs;
+
+        let bestTarget = null;
+        let bestDistance = Infinity;
+
+        for (const bird of birds) {
+          const d = distance(pointer.x, pointer.y, bird.x, bird.y);
+
+          if (d <= net.radius + bird.size && d < bestDistance) {
+            bestTarget = bird;
+            bestDistance = d;
+          }
+        }
+
+        if (!bestTarget) {
+          for (const bird of birds) {
+            const d = distance(pointer.x, pointer.y, bird.x, bird.y);
+            if (d < net.radius + 85) {
+              bird.alert += 0.25;
+            }
+          }
+
+          floatingTexts.push({
+            text: "Gentle miss",
+            x: pointer.x,
+            y: pointer.y - 20,
+            color: "#6f7b67",
+            alpha: 1,
+            age: 0,
+            life: 0.9
+          });
+
+          return;
+        }
+
+        const bird = bestTarget;
+        const distanceScore = clamp(1 - bestDistance / (net.radius + bird.size), 0, 1);
+        const rarityBonus = bird.data.rarity === "rare" || bird.data.rarity === "epic" ? net.rareBonus : 0;
+
+        const catchChance = clamp(
+          net.baseCatchChance +
+            rarityBonus +
+            distanceScore * 18 -
+            bird.data.catchDifficulty -
+            bird.alert * 18,
+          6,
+          96
+        );
+
+        const roll = Math.random() * 100;
+
+        if (roll <= catchChance) {
+          catchBird(bird, distanceScore);
+        } else {
+          bird.alert += 0.55;
+
+          floatingTexts.push({
+            text: "Bird slipped away",
+            x: bird.x,
+            y: bird.y - 28,
+            color: "#b4654d",
+            alpha: 1,
+            age: 0,
+            life: 1
+          });
+
+          if (bird.alert > 1.1) {
+            bird.state = "fleeing";
+          }
+
+          showToast("Careful approach needed", `${bird.data.name} became alert and may fly away.`);
+        }
+      }
+
+      function catchBird(bird, distanceScore) {
+        const data = bird.data;
+        const collectionEntry = save.collection[data.id] || {
+          discovered: false,
+          totalCaught: 0,
+          bestQuality: null,
+          firstCaughtAt: null
+        };
+
+        const firstCatch = !collectionEntry.discovered;
+        const quality = distanceScore >= 0.72 ? "Perfect" : distanceScore >= 0.38 ? "Clean" : "Safe";
+
+        const qualityMultiplier = quality === "Perfect" ? 1.25 : quality === "Clean" ? 1.05 : 1;
+        const firstCatchMultiplier = firstCatch ? 2 : 1;
+
+        const xpEarned = Math.round(data.xp * qualityMultiplier * firstCatchMultiplier);
+        const coinsEarned = Math.round(data.coins * qualityMultiplier);
+
+        save.xp += xpEarned;
+        save.coins += coinsEarned;
+        save.totalCatches += 1;
+
+        collectionEntry.discovered = true;
+        collectionEntry.totalCaught += 1;
+        collectionEntry.firstCaughtAt = collectionEntry.firstCaughtAt || new Date().toISOString();
+
+        if (
+          !collectionEntry.bestQuality ||
+          qualityRank(quality) > qualityRank(collectionEntry.bestQuality)
+        ) {
+          collectionEntry.bestQuality = quality;
+        }
+
+        save.collection[data.id] = collectionEntry;
+
+        birds = birds.filter((item) => item.uid !== bird.uid);
+
+        floatingTexts.push({
+          text: `+${xpEarned} XP  +${coinsEarned} coins`,
+          x: bird.x,
+          y: bird.y - 28,
+          color: RARITY[data.rarity].color,
+          alpha: 1,
+          age: 0,
+          life: 1.25
+        });
+
+        const discoveryText = firstCatch ? " New field guide entry unlocked!" : "";
+        showToast(
+          `${quality} catch: ${data.name}`,
+          `${RARITY[data.rarity].label} bird safely tagged and released. +${xpEarned} XP, +${coinsEarned} coins.${discoveryText}`
+        );
+
+        writeSave();
+        updateHud();
+      }
+
+      function qualityRank(quality) {
+        if (quality === "Perfect") return 3;
+        if (quality === "Clean") return 2;
+        if (quality === "Safe") return 1;
+        return 0;
+      }
+
+      function showToast(title, message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = `
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(message)}</p>
+        `;
+
+        toastStack.prepend(toast);
+
+        while (toastStack.children.length > 3) {
+          toastStack.lastElementChild.remove();
+        }
+
+        window.setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(-8px)";
+          toast.style.transition = "opacity 240ms ease, transform 240ms ease";
+
+          window.setTimeout(() => toast.remove(), 260);
+        }, 2800);
+      }
+
+      function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, "#bcecff");
+        sky.addColorStop(0.48, "#e6f8ff");
+        sky.addColorStop(1, "#cfeeb5");
+
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(255, 224, 109, 0.9)";
+        ctx.beginPath();
+        ctx.arc(width - 92, 86, 38, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawCloud(width * 0.18, 86, 1.15);
+        drawCloud(width * 0.48, 120, 0.8);
+        drawCloud(width * 0.76, 155, 1);
+
+        ctx.fillStyle = "#9ed68d";
+        drawHill(-80, height - 130, width * 0.65, 170);
+        ctx.fillStyle = "#83c979";
+        drawHill(width * 0.32, height - 118, width * 0.85, 190);
+
+        ctx.fillStyle = "#70b765";
+        ctx.fillRect(0, height - 120, width, 120);
+
+        for (let i = 0; i < 70; i++) {
+          const x = (i * 137.5) % width;
+          const y = height - randomSeeded(i, 18, 106);
+          const bladeHeight = randomSeeded(i + 44, 10, 30);
+
+          ctx.strokeStyle = i % 3 === 0 ? "#5ca85a" : "#68b965";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, height);
+          ctx.quadraticCurveTo(x + 5, y + bladeHeight, x + 2, y);
+          ctx.stroke();
+
+          if (i % 8 === 0) {
+            ctx.fillStyle = i % 16 === 0 ? "#f7d66d" : "#f4a1c9";
+            ctx.beginPath();
+            ctx.arc(x + 4, y - 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function randomSeeded(seed, min, max) {
+        const x = Math.sin(seed * 999) * 10000;
+        return min + (x - Math.floor(x)) * (max - min);
+      }
+
+      function drawHill(x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x, height);
+        ctx.quadraticCurveTo(x + w * 0.45, y - h, x + w, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawCloud(x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+        ctx.beginPath();
+        ctx.arc(0, 8, 20, 0, Math.PI * 2);
+        ctx.arc(22, 0, 27, 0, Math.PI * 2);
+        ctx.arc(52, 10, 19, 0, Math.PI * 2);
+        ctx.arc(28, 18, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawBird(bird) {
+        const data = bird.data;
+        const rarity = RARITY[data.rarity];
+        const facing = bird.vx >= 0 ? 1 : -1;
+        const wingLift = Math.sin(bird.flap) * 4;
+        const hover = distance(pointer.x, pointer.y, bird.x, bird.y) < 58;
+
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        ctx.scale(facing, 1);
+
+        if (data.rarity === "rare" || data.rarity === "epic") {
+          ctx.fillStyle = rarity.glow;
+          ctx.beginPath();
+          ctx.arc(0, 0, data.size * 2.15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (data.rarity === "epic") {
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, data.size * 2.45 + Math.sin(bird.flap) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = data.wing;
+        ctx.beginPath();
+        ctx.ellipse(-4, 4 + wingLift, data.size * 0.85, data.size * 0.42, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = data.body;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, data.size, data.size * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = lightenColor(data.body, 25);
+        ctx.beginPath();
+        ctx.arc(8, -5, data.size * 0.58, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f2b84b";
+        ctx.beginPath();
+        ctx.moveTo(17, -5);
+        ctx.lineTo(27, -1);
+        ctx.lineTo(17, 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#18231d";
+        ctx.beginPath();
+        ctx.arc(11, -9, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(42, 56, 42, 0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-2, data.size * 0.62);
+        ctx.lineTo(-5, data.size * 0.98);
+        ctx.moveTo(5, data.size * 0.6);
+        ctx.lineTo(8, data.size * 0.98);
+        ctx.stroke();
+
+        ctx.restore();
+
+        if (bird.alert > 0.25) {
+          drawAlertMeter(bird);
+        }
+
+        if (hover) {
+          drawBirdLabel(bird);
+        }
+      }
+
+      function lightenColor(hex, amount) {
+        const clean = hex.replace("#", "");
+        const num = parseInt(clean, 16);
+
+        const r = clamp((num >> 16) + amount, 0, 255);
+        const g = clamp(((num >> 8) & 0x00ff) + amount, 0, 255);
+        const b = clamp((num & 0x0000ff) + amount, 0, 255);
+
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function drawAlertMeter(bird) {
+        const barWidth = 34;
+        const x = bird.x - barWidth / 2;
+        const y = bird.y - bird.size - 20;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        roundRect(x, y, barWidth, 6, 999);
+        ctx.fill();
+
+        ctx.fillStyle = bird.alert > 0.9 ? "#d76b5d" : "#e6aa3c";
+        roundRect(x, y, barWidth * clamp(bird.alert / 1.25, 0, 1), 6, 999);
+        ctx.fill();
+      }
+
+      function drawBirdLabel(bird) {
+        const data = bird.data;
+        const rarity = RARITY[data.rarity];
+        const label = `${data.name} · ${rarity.label}`;
+
+        ctx.font = "700 13px system-ui, sans-serif";
+        const metrics = ctx.measureText(label);
+        const labelWidth = metrics.width + 18;
+        const labelHeight = 26;
+        const x = clamp(bird.x - labelWidth / 2, 8, width - labelWidth - 8);
+        const y = bird.y - bird.size - 50;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        roundRect(x, y, labelWidth, labelHeight, 999);
+        ctx.fill();
+
+        ctx.fillStyle = rarity.color;
+        ctx.beginPath();
+        ctx.arc(x + 12, y + labelHeight / 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#2c3a2f";
+        ctx.fillText(label, x + 22, y + 17);
+      }
+
+      function drawNetCursor() {
+        const net = getEquippedNet();
+        const now = performance.now();
+        const cooldownRemaining = clamp((nextThrowAt - now) / net.cooldownMs, 0, 1);
+        const ready = cooldownRemaining <= 0;
+
+        if (cooldownPulse > 0) {
+          cooldownPulse -= 0.05;
+        }
+
+        ctx.save();
+
+        ctx.globalAlpha = ready ? 0.92 : 0.45;
+        ctx.strokeStyle = ready ? "rgba(255, 255, 255, 0.95)" : "rgba(80, 90, 86, 0.62)";
+        ctx.lineWidth = 3 + cooldownPulse * 3;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, net.radius + cooldownPulse * 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = ready ? "rgba(63, 143, 84, 0.8)" : "rgba(150, 120, 85, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, net.radius * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(77, 92, 69, 0.55)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(pointer.x + net.radius * 0.46, pointer.y + net.radius * 0.46);
+        ctx.lineTo(pointer.x + net.radius * 1.08, pointer.y + net.radius * 1.08);
+        ctx.stroke();
+
+        if (!ready) {
+          ctx.strokeStyle = "rgba(215, 107, 93, 0.9)";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(
+            pointer.x,
+            pointer.y,
+            net.radius + 7,
+            -Math.PI / 2,
+            -Math.PI / 2 + Math.PI * 2 * (1 - cooldownRemaining)
+          );
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawFloatingTexts() {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.font = "900 16px system-ui, sans-serif";
+
+        for (const text of floatingTexts) {
+          ctx.globalAlpha = clamp(text.alpha, 0, 1);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+          ctx.strokeText(text.text, text.x, text.y);
+          ctx.fillStyle = text.color;
+          ctx.fillText(text.text, text.x, text.y);
+        }
+
+        ctx.restore();
+      }
+
+      function roundRect(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function draw() {
+        drawBackground();
+
+        const sortedBirds = [...birds].sort((a, b) => a.y - b.y);
+
+        for (const bird of sortedBirds) {
+          drawBird(bird);
+        }
+
+        drawFloatingTexts();
+        drawNetCursor();
+      }
+
+      function updateHud() {
+        const levelInfo = getLevelInfo(save.xp);
+        const equippedNet = getEquippedNet();
+
+        levelText.textContent = String(levelInfo.level);
+        xpText.textContent = `${levelInfo.current} / ${levelInfo.needed}`;
+        xpFill.style.width = `${clamp((levelInfo.current / levelInfo.needed) * 100, 0, 100)}%`;
+        coinText.textContent = String(save.coins);
+        netText.textContent = equippedNet.shortName;
+      }
+
+      function openModal(title, bodyHtml) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = bodyHtml;
+        modalBackdrop.classList.add("show");
+      }
+
+      function closeModal() {
+        modalBackdrop.classList.remove("show");
+        modalBody.innerHTML = "";
+      }
+
+      function renderStore() {
+        const level = getLevelInfo(save.xp).level;
+
+        const cards = NETS.map((net) => {
+          const owned = save.ownedNetIds.includes(net.id);
+          const equipped = save.equippedNetId === net.id;
+          const levelLocked = level < net.unlockLevel;
+          const cannotAfford = save.coins < net.cost;
+          const lockedClass = levelLocked ? "locked" : "";
+
+          let buttonHtml = "";
+
+          if (owned && equipped) {
+            buttonHtml = `<button class="mini-button" disabled>Equipped</button>`;
+          } else if (owned) {
+            buttonHtml = `<button class="mini-button primary" data-equip-net="${escapeHtml(net.id)}">Equip</button>`;
+          } else {
+            buttonHtml = `
+              <button
+                class="mini-button primary"
+                data-buy-net="${escapeHtml(net.id)}"
+                ${levelLocked || cannotAfford ? "disabled" : ""}
+              >
+                Buy for ${net.cost} coins
+              </button>
+            `;
+          }
+
+          const statusText = levelLocked
+            ? `Unlocks at level ${net.unlockLevel}`
+            : owned
+              ? "Owned"
+              : cannotAfford
+                ? `Need ${net.cost - save.coins} more coins`
+                : "Available";
+
+          return `
+            <article class="item-card ${lockedClass}">
+              <h3>${escapeHtml(net.name)}</h3>
+              <p>${escapeHtml(net.description)}</p>
+              <div class="meta">
+                <span class="tag">Radius ${net.radius}</span>
+                <span class="tag">${(net.cooldownMs / 1000).toFixed(2)}s cooldown</span>
+                <span class="tag">Base ${net.baseCatchChance}%</span>
+                ${net.rareBonus ? `<span class="tag rare">Rare +${net.rareBonus}%</span>` : ""}
+                ${net.stealth ? `<span class="tag uncommon">Quiet</span>` : ""}
+              </div>
+              <p><strong>${escapeHtml(statusText)}</strong></p>
+              <div class="card-actions">
+                ${buttonHtml}
+              </div>
+            </article>
+          `;
+        }).join("");
+
+        openModal("Net Store", `
+          <p style="margin-top: 0; color: #66745f;">
+            Nets are sidegrades. Wide is forgiving, Quick rewards fast play, and Silent helps with rare birds.
+          </p>
+          <div class="grid">${cards}</div>
+        `);
+
+        modalBody.querySelectorAll("[data-buy-net]").forEach((button) => {
+          button.addEventListener("click", () => buyNet(button.dataset.buyNet));
+        });
+
+        modalBody.querySelectorAll("[data-equip-net]").forEach((button) => {
+          button.addEventListener("click", () => equipNet(button.dataset.equipNet));
+        });
+      }
+
+      function buyNet(netId) {
+        const net = NETS.find((item) => item.id === netId);
+        const level = getLevelInfo(save.xp).level;
+
+        if (!net) return;
+        if (save.ownedNetIds.includes(net.id)) return;
+
+        if (level < net.unlockLevel) {
+          showToast("Still locked", `${net.name} unlocks at level ${net.unlockLevel}.`);
+          return;
+        }
+
+        if (save.coins < net.cost) {
+          showToast("Not enough coins", `You need ${net.cost - save.coins} more coins.`);
+          return;
+        }
+
+        save.coins -= net.cost;
+        save.ownedNetIds.push(net.id);
+        save.equippedNetId = net.id;
+
+        writeSave();
+        updateHud();
+        renderStore();
+        showToast("New net equipped", `${net.name} is ready for gentle field work.`);
+      }
+
+      function equipNet(netId) {
+        if (!save.ownedNetIds.includes(netId)) return;
+
+        const net = NETS.find((item) => item.id === netId);
+        if (!net) return;
+
+        save.equippedNetId = net.id;
+
+        writeSave();
+        updateHud();
+        renderStore();
+        showToast("Net equipped", `${net.name} selected.`);
+      }
+
+      function renderFieldGuide() {
+        const discoveredCount = BIRDS.filter((bird) => save.collection[bird.id]?.discovered).length;
+        const totalCaught = BIRDS.reduce((sum, bird) => sum + (save.collection[bird.id]?.totalCaught || 0), 0);
+
+        const cards = BIRDS.map((bird) => {
+          const entry = save.collection[bird.id] || {};
+          const discovered = Boolean(entry.discovered);
+          const rarity = RARITY[bird.rarity];
+
+          if (!discovered) {
+            return `
+              <article class="item-card locked">
+                <h3>Unknown Bird</h3>
+                <div class="meta">
+                  <span class="tag ${bird.rarity}">${escapeHtml(rarity.label)}</span>
+                  <span class="tag">Meadow</span>
+                </div>
+                <p>A silhouette waits in your field guide. Keep exploring the meadow.</p>
+              </article>
+            `;
+          }
+
+          return `
+            <article class="item-card">
+              <h3>${escapeHtml(bird.name)}</h3>
+              <div class="meta">
+                <span class="tag ${bird.rarity}">${escapeHtml(rarity.label)}</span>
+                <span class="tag">Caught ${entry.totalCaught}</span>
+                <span class="tag">Best: ${escapeHtml(entry.bestQuality || "Safe")}</span>
+              </div>
+              <p>${escapeHtml(bird.note)}</p>
+              <p>
+                <strong>Rewards:</strong>
+                ${bird.xp} XP · ${bird.coins} coins
+              </p>
+            </article>
+          `;
+        }).join("");
+
+        openModal("Field Guide", `
+          <p style="margin-top: 0; color: #66745f;">
+            Meadow progress: <strong>${discoveredCount}/${BIRDS.length}</strong> species discovered ·
+            <strong>${totalCaught}</strong> safe catches total.
+          </p>
+          <div class="grid">${cards}</div>
+        `);
+      }
+
+      function resetGame() {
+        const confirmed = window.confirm("Reset your local save and start again?");
+        if (!confirmed) return;
+
+        localStorage.removeItem(STORAGE_KEY);
+        save = createDefaultSave();
+        birds = [];
+        floatingTexts = [];
+        nextThrowAt = 0;
+
+        writeSave();
+        updateHud();
+        showToast("Save reset", "Your meadow preserve has been restarted.");
+      }
+
+      function updatePointerFromEvent(event) {
+        const rect = canvas.getBoundingClientRect();
+
+        pointer.x = clamp(event.clientX - rect.left, 0, width);
+        pointer.y = clamp(event.clientY - rect.top, 0, height);
+        pointer.active = true;
+      }
+
+      function gameLoop(now) {
+        const dt = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+
+        updateSpawning(dt);
+        updateBirds(dt);
+        updateFloatingTexts(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function startGame() {
+        landingPage.classList.add("hidden");
+        app.style.display = "grid";
+        
+        resizeCanvas();
+        updateHud();
+
+        for (let i = 0; i < 4; i += 1) {
+          spawnBird();
+        }
+
+        showToast("Welcome, ranger", "Explore the meadow and safely catch birds to build your field guide.");
+        requestAnimationFrame(gameLoop);
+      }
+
+      canvas.addEventListener("pointermove", updatePointerFromEvent);
+
+      canvas.addEventListener("pointerenter", (event) => {
+        updatePointerFromEvent(event);
+        pointer.active = true;
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        updatePointerFromEvent(event);
+        attemptCatch();
+      });
+
+      storeButton.addEventListener("click", renderStore);
+      guideButton.addEventListener("click", renderFieldGuide);
+      resetButton.addEventListener("click", resetGame);
+      closeModalButton.addEventListener("click", closeModal);
+      startGameButton.addEventListener("click", startGame);
+
+      modalBackdrop.addEventListener("click", (event) => {
+        if (event.target === modalBackdrop) {
+          closeModal();
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeModal();
+        }
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      app.style.display = "none";
+    })();
+  </script>
+</body>
+</html>
