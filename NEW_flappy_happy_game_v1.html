@@ -420,10 +420,151 @@
         height: 100%;
       }
     }
+
+    .landing-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 247, 178, 0.55), transparent 34%),
+        linear-gradient(180deg, #dff4ff 0%, #eef8df 60%, #d8efc1 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .landing-page.hidden {
+      display: none;
+    }
+
+    .landing-content {
+      text-align: center;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 48px 32px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      animation: slideUp 600ms ease both;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .landing-content h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+
+    .landing-content .subtitle {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted);
+      margin: 0 0 28px;
+      font-weight: 600;
+    }
+
+    .landing-content p {
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0 0 32px;
+    }
+
+    .landing-content .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+      text-align: left;
+    }
+
+    .feature-item {
+      padding: 16px;
+      background: rgba(105, 181, 120, 0.1);
+      border-radius: 16px;
+      border: 1px solid rgba(105, 181, 120, 0.2);
+    }
+
+    .feature-item strong {
+      display: block;
+      color: var(--green-dark);
+      margin-bottom: 4px;
+    }
+
+    .feature-item span {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .landing-content .start-button {
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(63, 143, 84, 0.25);
+      border: 0;
+      padding: 16px 48px;
+      border-radius: 999px;
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+      margin-top: 24px;
+    }
+
+    .landing-content .start-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .landing-content .start-button:active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+    }
   </style>
 </head>
 
 <body>
+  <div class="landing-page" id="landingPage">
+    <div class="landing-content">
+      <h1>Featherfield Preserve</h1>
+      <p class="subtitle">Safely catch, study, and release birds in a cozy meadow sanctuary.</p>
+      
+      <div class="features">
+        <div class="feature-item">
+          <strong>🐦 Catch</strong>
+          <span>Gently net birds in the meadow</span>
+        </div>
+        <div class="feature-item">
+          <strong>📚 Study</strong>
+          <span>Build your field guide collection</span>
+        </div>
+        <div class="feature-item">
+          <strong>🎯 Progress</strong>
+          <span>Level up and unlock new nets</span>
+        </div>
+        <div class="feature-item">
+          <strong>✨ Explore</strong>
+          <span>Discover rare and epic birds</span>
+        </div>
+      </div>
+
+      <p>Hover your net over a bird and click to catch. Rarer birds are faster and harder to catch.</p>
+      
+      <button class="start-button" id="startGameButton">Play Now</button>
+    </div>
+  </div>
+
   <main class="app">
     <section class="topbar">
       <div class="brand-card">
@@ -641,12 +782,6 @@
       const landingPage = document.getElementById("landingPage");
       const startGameButton = document.getElementById("startGameButton");
       const app = document.querySelector(".app");
-
-      const loginPage = document.getElementById("loginPage");
-      const loginButton = document.getElementById("loginButton");
-      const backButton = document.getElementById("backButton");
-      const loginForm = document.getElementById("loginForm");
-      const signupButton = document.getElementById("signupButton");
 
       const levelText = document.getElementById("levelText");
       const xpFill = document.getElementById("xpFill");
@@ -1630,6 +1765,21 @@
         requestAnimationFrame(gameLoop);
       }
 
+      function startGame() {
+        landingPage.classList.add("hidden");
+        app.style.display = "grid";
+        
+        resizeCanvas();
+        updateHud();
+
+        for (let i = 0; i < 4; i += 1) {
+          spawnBird();
+        }
+
+        showToast("Welcome, ranger", "Explore the meadow and safely catch birds to build your field guide.");
+        requestAnimationFrame(gameLoop);
+      }
+
       canvas.addEventListener("pointermove", updatePointerFromEvent);
 
       canvas.addEventListener("pointerenter", (event) => {
@@ -1651,6 +1801,7 @@
       guideButton.addEventListener("click", renderFieldGuide);
       resetButton.addEventListener("click", resetGame);
       closeModalButton.addEventListener("click", closeModal);
+      startGameButton.addEventListener("click", startGame);
 
       modalBackdrop.addEventListener("click", (event) => {
         if (event.target === modalBackdrop) {
@@ -1666,16 +1817,7 @@
 
       window.addEventListener("resize", resizeCanvas);
 
-      resizeCanvas();
-      updateHud();
-
-      for (let i = 0; i < 4; i += 1) {
-        spawnBird();
-      }
-
-      showToast("Welcome, ranger", "Explore the meadow and safely catch birds to build your field guide.");
-
-      requestAnimationFrame(gameLoop);
+      app.style.display = "none";
     })();
   </script>
 </body>
