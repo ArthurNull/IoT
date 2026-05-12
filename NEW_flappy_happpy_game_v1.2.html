@@ -795,6 +795,14 @@
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
 
+      const landingPage = document.getElementById("landingPage");
+      const loginPage = document.getElementById("loginPage");
+      const startGameButton = document.getElementById("startGameButton");
+      const loginButton = document.getElementById("loginButton");
+      const backButton = document.getElementById("backButton");
+      const loginForm = document.getElementById("loginForm");
+      const signupButton = document.getElementById("signupButton");
+
       const levelText = document.getElementById("levelText");
       const xpFill = document.getElementById("xpFill");
       const xpText = document.getElementById("xpText");
@@ -2293,6 +2301,53 @@
         requestAnimationFrame(gameLoop);
       }
 
+      function startGame() {
+        landingPage.style.display = "none";
+        loginPage.classList.remove("show");
+        document.querySelector(".app").style.display = "grid";
+
+        resizeCanvas();
+        updateHud();
+
+        for (let i = 0; i < 5; i += 1) {
+          spawnBird();
+        }
+
+        showToast(
+          "Welcome, ranger",
+          "Aim from your ranger and launch the soft net. Birds are safely checked, tagged, and released."
+        );
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function showLogin() {
+        landingPage.style.display = "none";
+        loginPage.classList.add("show");
+      }
+
+      function backToLanding() {
+        loginPage.classList.remove("show");
+        landingPage.style.display = "grid";
+        loginForm.reset();
+      }
+
+      function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById("emailInput").value.trim();
+        const password = document.getElementById("passwordInput").value.trim();
+
+        if (email && password) {
+          showToast("Login successful", `Welcome back, ${email}!`);
+          loginForm.reset();
+          backToLanding();
+        }
+      }
+
+      function handleSignup() {
+        alert("Sign up feature coming soon!");
+      }
+
       canvas.addEventListener("pointermove", updatePointerFromEvent);
 
       canvas.addEventListener("pointerenter", (event) => {
@@ -2314,6 +2369,11 @@
       guideButton.addEventListener("click", renderFieldGuide);
       resetButton.addEventListener("click", resetGame);
       closeModalButton.addEventListener("click", closeModal);
+      startGameButton.addEventListener("click", startGame);
+      loginButton.addEventListener("click", showLogin);
+      backButton.addEventListener("click", backToLanding);
+      loginForm.addEventListener("submit", handleLogin);
+      signupButton.addEventListener("click", handleSignup);
 
       modalBackdrop.addEventListener("click", (event) => {
         if (event.target === modalBackdrop) {
