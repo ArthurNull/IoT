@@ -640,6 +640,39 @@
       transform: translateY(-2px);
       filter: brightness(1.06);
     }
+
+    .game-shell .game-overlay-actions {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 3;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .game-shell .game-overlay-actions .button {
+      box-shadow: 0 10px 22px rgba(45, 82, 55, 0.22);
+    }
+
+    .profile-summary {
+      margin: 0 0 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(99, 173, 109, 0.12);
+      border: 1px solid rgba(99, 173, 109, 0.22);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .profile-summary strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--green-dark);
+    }
   </style>
 </head>
 
@@ -722,6 +755,9 @@
     </section>
 
     <section class="game-shell">
+      <div class="game-overlay-actions">
+        <button class="button secondary" id="profileButtonGame" type="button" hidden>Profile</button>
+      </div>
       <canvas id="gameCanvas" aria-label="Australian bird preserve game canvas"></canvas>
 
       <div class="toast-stack" id="toastStack"></div>
@@ -752,6 +788,7 @@
       "use strict";
 
       const STORAGE_KEY = "featherfield_preserve_australia_v2";
+      const USER_SESSION_KEY = "featherfield_user_session_v1";
 
       const RARITY = {
         common: {
@@ -1064,6 +1101,7 @@
 
       const storeButton = document.getElementById("storeButton");
       const guideButton = document.getElementById("guideButton");
+      const profileButtonGame = document.getElementById("profileButtonGame");
       const resetButton = document.getElementById("resetButton");
 
       const modalBackdrop = document.getElementById("modalBackdrop");
@@ -1172,6 +1210,78 @@
 
       function writeSave() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+      }
+
+      function getUserSession() {
+        try {
+          const raw = sessionStorage.getItem(USER_SESSION_KEY);
+          if (!raw) {
+            return null;
+          }
+
+          const parsed = JSON.parse(raw);
+
+          if (!parsed || typeof parsed !== "object" || typeof parsed.email !== "string" || !parsed.email) {
+            return null;
+          }
+
+          return { email: parsed.email };
+        } catch (error) {
+          console.warn("Could not read user session.", error);
+          return null;
+        }
+      }
+
+      function setUserSession(email) {
+        sessionStorage.setItem(
+          USER_SESSION_KEY,
+          JSON.stringify({ email, loggedInAt: new Date().toISOString() })
+        );
+      }
+
+      function clearUserSession() {
+        sessionStorage.removeItem(USER_SESSION_KEY);
+      }
+
+      function updateProfileButtonsVisibility() {
+        const session = getUserSession();
+        profileButtonGame.hidden = !session;
+      }
+
+      function openProfileModal() {
+        const session = getUserSession();
+
+        if (!session) {
+          return;
+        }
+
+        const levelInfo = getLevelInfo(save.xp);
+        const discovered = BIRDS.filter((bird) => save.collection[bird.id]?.discovered).length;
+
+        openModal("Ranger profile", `
+          <div class="profile-summary">
+            <strong>Signed in</strong>
+            <span>${escapeHtml(session.email)}</span>
+          </div>
+
+          <p style="margin-top: 0; color: #617060;">
+            Level <strong>${levelInfo.level}</strong> ·
+            <strong>${discovered}</strong> / ${BIRDS.length} species in your guide ·
+            <strong>${save.totalSafeHandles}</strong> safe handles ·
+            <strong>${save.totalObservations}</strong> observations
+          </p>
+
+          <div class="card-actions" style="margin-top: 16px;">
+            <button class="mini-button primary" type="button" id="profileLogoutButton">Log out</button>
+          </div>
+        `);
+
+        document.getElementById("profileLogoutButton")?.addEventListener("click", () => {
+          clearUserSession();
+          updateProfileButtonsVisibility();
+          closeModal();
+          showToast("Signed out", "You can sign in again from the landing page.");
+        });
       }
 
       function xpRequiredForLevel(level) {
@@ -2558,6 +2668,7 @@
         loginPage.classList.remove("show");
         document.querySelector(".app").style.display = "grid";
 
+        updateProfileButtonsVisibility();
         resizeCanvas();
         updateHud();
 
@@ -2590,6 +2701,7 @@
         const password = document.getElementById("passwordInput").value.trim();
 
         if (email && password) {
+          setUserSession(email);
           showToast("Login successful", `Welcome back, ${email}!`);
           loginForm.reset();
           backToLanding();
@@ -2619,6 +2731,7 @@
 
       storeButton.addEventListener("click", renderStore);
       guideButton.addEventListener("click", renderFieldGuide);
+      profileButtonGame.addEventListener("click", openProfileModal);
       resetButton.addEventListener("click", resetGame);
       closeModalButton.addEventListener("click", closeModal);
       startGameButton.addEventListener("click", startGame);
@@ -2641,6 +2754,7 @@
 
       window.addEventListener("resize", resizeCanvas);
 
+      updateProfileButtonsVisibility();
       resizeCanvas();
       updateHud();
     })();
