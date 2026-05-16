@@ -1,0 +1,2829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Featherfield Preserve - Australian Birds MVP</title>
+
+  <!--
+    Featherfield Preserve - readable single-file MVP
+
+    This version keeps everything in one HTML file for easy classroom/demo use,
+    but the code is divided into labelled sections so it is easier to edit.
+  -->
+
+  <style>
+    /* ============================================================
+       CSS 1. Theme variables
+       ============================================================ */
+    :root {
+      --text: #243428;
+      --muted: #617060;
+      --panel: rgba(255, 255, 255, 0.9);
+      --panel-solid: #fffaf0;
+      --green: #63ad6d;
+      --green-dark: #397d48;
+      --blue: #5ca6da;
+      --gold: #dfa840;
+      --danger: #d46758;
+      --shadow: 0 14px 34px rgba(40, 70, 48, 0.2);
+      --radius: 22px;
+    }
+
+    /* ============================================================
+       CSS 2. Base page layout
+       ============================================================ */
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 238, 151, 0.55), transparent 35%),
+        linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%);
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    /* ============================================================
+       CSS 3. Main game screen and top HUD
+       ============================================================ */
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      z-index: 5;
+    }
+
+    .brand-card,
+    .stats-card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .brand-card {
+      padding: 14px 18px;
+    }
+
+    .brand-card h1 {
+      margin: 0;
+      line-height: 1.05;
+      font-size: clamp(1.15rem, 2.6vw, 2rem);
+    }
+
+    .brand-card p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .stats-card {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 9px;
+      padding: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      font-size: 0.9rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .xp-shell {
+      width: 145px;
+      height: 13px;
+      overflow: hidden;
+      background: rgba(54, 94, 67, 0.14);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .xp-fill {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #72d085, #efbd4e);
+      border-radius: inherit;
+      transition: width 180ms ease;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 13px;
+      color: white;
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(57, 125, 72, 0.25);
+      cursor: pointer;
+      font-weight: 900;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .button.secondary {
+      background: linear-gradient(180deg, #74b9df, #4f91bd);
+      box-shadow: 0 7px 16px rgba(79, 145, 189, 0.24);
+    }
+
+    .button.warn {
+      background: linear-gradient(180deg, #e08473, #c7584b);
+      box-shadow: 0 7px 16px rgba(199, 88, 75, 0.22);
+    }
+
+    .game-shell {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 4px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 20px 54px rgba(45, 82, 55, 0.25);
+      background: #bfeaff;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .hint-card {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      width: min(470px, calc(100% - 32px));
+      padding: 12px 14px;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.84);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .hint-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .hint-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .toast-stack {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 4;
+      display: grid;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      width: min(430px, calc(100vw - 60px));
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      animation: popIn 170ms ease both;
+    }
+
+    .toast h3 {
+      margin: 0 0 4px;
+      font-size: 1rem;
+    }
+
+    .toast p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ============================================================
+       CSS 4. Modal windows: store and field guide
+       ============================================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(25, 45, 30, 0.45);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.show {
+      display: grid;
+    }
+
+    .modal {
+      width: min(1040px, 100%);
+      max-height: min(800px, 92vh);
+      overflow: auto;
+      background: var(--panel-solid);
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      border-radius: 28px;
+      box-shadow: 0 30px 82px rgba(0, 0, 0, 0.28);
+    }
+
+    .modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      background: rgba(255, 250, 240, 0.97);
+      border-bottom: 1px solid rgba(76, 93, 65, 0.13);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .modal-body {
+      padding: 18px 20px 22px;
+    }
+
+    .close-button {
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 999px;
+      background: #f0dec5;
+      color: #5e4b34;
+      font-size: 1.2rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 14px;
+    }
+
+    .item-card {
+      background: white;
+      border: 1px solid rgba(76, 93, 65, 0.12);
+      border-radius: 20px;
+      box-shadow: 0 8px 22px rgba(43, 75, 52, 0.08);
+      padding: 15px;
+    }
+
+    .item-card h3 {
+      margin: 0 0 6px;
+    }
+
+    .item-card p {
+      margin: 7px 0;
+      color: var(--muted);
+      line-height: 1.42;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #eef7e8;
+      color: #3d774d;
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .tag.common {
+      background: #edf8e9;
+      color: #4e8f49;
+    }
+
+    .tag.uncommon {
+      background: #e7f4ff;
+      color: #3b7eab;
+    }
+
+    .tag.rare {
+      background: #f1e8ff;
+      color: #7350b6;
+    }
+
+    .tag.epic {
+      background: #fff0fb;
+      color: #b84ca2;
+    }
+
+    .tag.legendary {
+      background: #fff6d9;
+      color: #9c6b11;
+    }
+
+    .tag.conservation {
+      background: #e8f7ef;
+      color: #32764c;
+    }
+
+    .locked {
+      filter: grayscale(0.65);
+      opacity: 0.72;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .mini-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 11px;
+      background: #e9f6df;
+      color: #356c43;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .mini-button.primary {
+      background: var(--green);
+      color: white;
+    }
+
+    .mini-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    @media (max-width: 880px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-card {
+        justify-content: flex-start;
+      }
+
+      .game-shell {
+        height: 69vh;
+        min-height: 510px;
+      }
+
+      .hint-card {
+        right: 12px;
+        left: 12px;
+        bottom: 12px;
+      }
+    }
+
+    @media (min-width: 881px) {
+      .game-shell {
+        height: 100%;
+      }
+    }
+
+    /* ============================================================
+       CSS 5. Landing and login screens
+       ============================================================ */
+    .landing-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 238, 151, 0.55), transparent 35%),
+        linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .landing-content {
+      width: min(720px, 100%);
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 44px 32px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      animation: slideUp 600ms ease both;
+      overflow: hidden;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .landing-content h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.05;
+    }
+
+    .landing-content .subtitle {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.4vw, 1.2rem);
+      font-weight: 600;
+    }
+
+    .landing-content p {
+      margin: 0 0 28px;
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 1rem;
+    }
+
+    .landing-content .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+
+    .feature-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(99, 173, 109, 0.1);
+      border: 1px solid rgba(99, 173, 109, 0.18);
+    }
+
+    .feature-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--green-dark);
+    }
+
+    .feature-item span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .login-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 238, 151, 0.55), transparent 35%),
+        linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .login-page.show {
+      display: grid;
+    }
+
+    .login-content {
+      width: min(520px, 100%);
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 40px 30px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      animation: slideUp 600ms ease both;
+      text-align: center;
+    }
+
+    .login-content h2 {
+      margin: 0 0 22px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      line-height: 1.05;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .login-content input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid rgba(76, 93, 65, 0.18);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .login-content input:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .login-content input::placeholder {
+      color: var(--muted);
+    }
+
+    .login-button {
+      width: 100%;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-weight: 900;
+      font-size: 1rem;
+      color: white;
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(57, 125, 72, 0.25);
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .back-button,
+    .signup-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-weight: 900;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
+    }
+
+    .back-button {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid rgba(97, 112, 96, 0.22);
+      width: 100%;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      background: rgba(97, 112, 96, 0.08);
+    }
+
+    .signup-button {
+      width: 100%;
+      background: linear-gradient(180deg, #74b9df, #4f91bd);
+      color: white;
+      box-shadow: 0 7px 16px rgba(79, 145, 189, 0.24);
+    }
+
+    .signup-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ============================================================
+       HTML 1. Landing screen
+       ============================================================ -->
+  <div class="landing-page" id="landingPage">
+    <div class="landing-content">
+      <h1>Featherfield Preserve</h1>
+      <p class="subtitle">Australian birds, gentle ranger tools, safe tagging, and conservation field notes.</p>
+
+      <div class="features">
+        <div class="feature-item">
+          <strong>🐦 Catch</strong>
+          <span>Gently net birds to study and release them safely.</span>
+        </div>
+        <div class="feature-item">
+          <strong>📚 Learn</strong>
+          <span>Build your field guide with species and sightings.</span>
+        </div>
+        <div class="feature-item">
+          <strong>🎯 Progress</strong>
+          <span>Earn XP and reputation for better ranger tools.</span>
+        </div>
+        <div class="feature-item">
+          <strong>✨ Explore</strong>
+          <span>Discover rarer birds with careful observation.</span>
+        </div>
+      </div>
+
+      <p>Hover your net over a bird and click to catch. Rarer birds are faster and harder to catch.</p>
+
+      <div class="button-group">
+        <button class="button" id="startGameButton">Play Now</button>
+        <button class="button secondary" id="loginButton">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HTML 2. Prototype login screen
+       ============================================================ -->
+  <div class="login-page" id="loginPage">
+    <div class="login-content">
+      <h2>Welcome Back</h2>
+      <form id="loginForm" class="login-form">
+        <input type="email" id="emailInput" placeholder="Email" required>
+        <input type="password" id="passwordInput" placeholder="Password" required>
+        <button type="submit" class="login-button">Login</button>
+      </form>
+      <button class="back-button" id="backButton">Back to Landing</button>
+      <div style="margin-top: 18px; text-align: center; color: var(--muted);">
+        <p style="margin: 0 0 14px;">Don't have an account?</p>
+        <button class="signup-button" id="signupButton">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HTML 3. Main game app: HUD + canvas
+       ============================================================ -->
+  <main class="app" style="display: none;">
+    <section class="topbar">
+      <div class="brand-card">
+        <h1>Featherfield Preserve</h1>
+        <p>Australian birds, gentle ranger tools, field notes, safe tagging, and release.</p>
+      </div>
+
+      <div class="stats-card">
+        <span class="pill">Lv. <span id="levelText">1</span></span>
+
+        <span class="pill">
+          XP
+          <span class="xp-shell">
+            <span class="xp-fill" id="xpFill"></span>
+          </span>
+          <span id="xpText">0 / 75</span>
+        </span>
+
+        <span class="pill">🪙 <span id="coinText">0</span></span>
+        <span class="pill">🌿 Rep <span id="repText">0</span></span>
+        <span class="pill">Net: <span id="netText">Starter</span></span>
+
+        <button class="button" id="storeButton">Store</button>
+        <button class="button secondary" id="guideButton">Field Guide</button>
+        <button class="button warn" id="resetButton">Reset</button>
+      </div>
+    </section>
+
+    <section class="game-shell">
+      <canvas id="gameCanvas" aria-label="Australian bird preserve game canvas"></canvas>
+
+      <div class="toast-stack" id="toastStack"></div>
+
+      <div class="hint-card">
+        <strong>How to play</strong>
+        <span>
+          Aim from the ranger and click/tap to launch the soft net. Catchable birds are safely checked,
+          tagged, and released. Special conservation birds are observed instead of captured.
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================================
+       HTML 4. Shared modal used by the store and field guide
+       ============================================================ -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modalTitle">Modal</h2>
+        <button class="close-button" id="closeModalButton" aria-label="Close modal">×</button>
+      </div>
+
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /*
+        JavaScript map
+        1. Configuration and game data
+        2. DOM references and game state
+        3. Save, progression, and utility helpers
+        4. Bird spawning and movement
+        5. Net throwing, catching, and conservation handling
+        6. HUD, toast messages, and drawing
+        7. Store, field guide, input, and game startup
+      */
+
+      // ============================================================
+      // JS 1. Configuration and game data
+      // ============================================================
+
+      const STORAGE_KEY = "featherfield_preserve_australia_v2";
+
+      // Rarity controls labels, UI colour, and the subtle glow drawn around special birds.
+      const RARITY = {
+        common: {
+          label: "Common",
+          color: "#6caf66",
+          glow: "rgba(108, 175, 102, 0.16)"
+        },
+        uncommon: {
+          label: "Uncommon",
+          color: "#3d9ed1",
+          glow: "rgba(61, 158, 209, 0.17)"
+        },
+        rare: {
+          label: "Rare",
+          color: "#8160cf",
+          glow: "rgba(129, 96, 207, 0.2)"
+        },
+        epic: {
+          label: "Epic",
+          color: "#cc54b7",
+          glow: "rgba(204, 84, 183, 0.25)"
+        },
+        legendary: {
+          label: "Conservation",
+          color: "#d89b2a",
+          glow: "rgba(216, 155, 42, 0.25)"
+        }
+      };
+
+      /*
+        Bird records combine:
+        - real species identity: commonName and scientificName
+        - gameplay values: rarity, speed, difficulty, rewards, unlock level
+        - render values: body, wing, chest, accent, beak
+        - collection text: fieldGuide
+      */
+      const BIRDS = [
+        {
+          id: "willie_wagtail",
+          commonName: "Willie Wagtail",
+          scientificName: "Rhipidura leucophrys",
+          rarity: "common",
+          handling: "catch_release",
+          spawnWeight: 34,
+          levelRequired: 1,
+          size: 14,
+          speed: 88,
+          catchDifficulty: 13,
+          alertRate: 0.2,
+          xp: 9,
+          coins: 6,
+          reputation: 1,
+          body: "#1d2224",
+          wing: "#101314",
+          chest: "#f3f2ea",
+          accent: "#ffffff",
+          beak: "#181818",
+          movementStyle: "zigzag",
+          fieldGuide:
+            "A small black-and-white fantail with a white chest and eyebrow. It flicks and fans its tail while searching for insects."
+        },
+        {
+          id: "australian_magpie",
+          commonName: "Australian Magpie",
+          scientificName: "Gymnorhina tibicen",
+          rarity: "common",
+          handling: "catch_release",
+          spawnWeight: 28,
+          levelRequired: 1,
+          size: 20,
+          speed: 50,
+          catchDifficulty: 17,
+          alertRate: 0.31,
+          xp: 12,
+          coins: 8,
+          reputation: 1,
+          body: "#151719",
+          wing: "#f1f0e8",
+          chest: "#0f1011",
+          accent: "#dfded4",
+          beak: "#d8d4c8",
+          movementStyle: "territorial",
+          fieldGuide:
+            "A familiar black-and-white Australian bird. Magpies live in defended territories and are known for their rich warbling calls."
+        },
+        {
+          id: "galah",
+          commonName: "Galah",
+          scientificName: "Eolophus roseicapilla",
+          rarity: "uncommon",
+          handling: "catch_release",
+          spawnWeight: 17,
+          levelRequired: 1,
+          size: 21,
+          speed: 60,
+          catchDifficulty: 22,
+          alertRate: 0.25,
+          xp: 20,
+          coins: 14,
+          reputation: 2,
+          body: "#eaa3b5",
+          wing: "#92979e",
+          chest: "#efabc0",
+          accent: "#f3cad4",
+          beak: "#dad2c8",
+          movementStyle: "flock",
+          fieldGuide:
+            "A rose-pink and grey cockatoo often seen in noisy groups. Galahs have a bouncing, acrobatic flight."
+        },
+        {
+          id: "rainbow_lorikeet",
+          commonName: "Rainbow Lorikeet",
+          scientificName: "Trichoglossus moluccanus",
+          rarity: "uncommon",
+          handling: "catch_release",
+          spawnWeight: 15,
+          levelRequired: 2,
+          size: 17,
+          speed: 92,
+          catchDifficulty: 28,
+          alertRate: 0.29,
+          xp: 25,
+          coins: 18,
+          reputation: 2,
+          body: "#238243",
+          wing: "#126a31",
+          chest: "#e67a2f",
+          head: "#3656a7",
+          accent: "#f3c739",
+          beak: "#e34e34",
+          movementStyle: "burst",
+          fieldGuide:
+            "A bright lorikeet with green wings, blue head, orange-yellow breast, and red beak. Often noisy and fast-moving."
+        },
+        {
+          id: "superb_fairy_wren",
+          commonName: "Superb Fairy-wren",
+          scientificName: "Malurus cyaneus",
+          rarity: "rare",
+          handling: "catch_release",
+          spawnWeight: 7,
+          levelRequired: 2,
+          size: 11,
+          speed: 99,
+          catchDifficulty: 38,
+          alertRate: 0.39,
+          xp: 48,
+          coins: 34,
+          reputation: 4,
+          body: "#2b57b8",
+          wing: "#17264f",
+          chest: "#161819",
+          accent: "#65a9ff",
+          beak: "#161616",
+          movementStyle: "tiny_hopper",
+          fieldGuide:
+            "A tiny, energetic wren. Adult males can show striking blue and black breeding plumage."
+        },
+        {
+          id: "laughing_kookaburra",
+          commonName: "Laughing Kookaburra",
+          scientificName: "Dacelo novaeguineae",
+          rarity: "rare",
+          handling: "catch_release",
+          spawnWeight: 6,
+          levelRequired: 3,
+          size: 26,
+          speed: 38,
+          catchDifficulty: 33,
+          alertRate: 0.34,
+          xp: 56,
+          coins: 42,
+          reputation: 4,
+          body: "#d8c5a5",
+          wing: "#765437",
+          chest: "#f2eadc",
+          accent: "#3d3027",
+          beak: "#51483e",
+          movementStyle: "perch",
+          fieldGuide:
+            "A large kingfisher with off-white underparts, brown wings, and a famous laughing call."
+        },
+        {
+          id: "black_swan",
+          commonName: "Black Swan",
+          scientificName: "Cygnus atratus",
+          rarity: "epic",
+          handling: "catch_release",
+          spawnWeight: 2,
+          levelRequired: 4,
+          size: 31,
+          speed: 28,
+          catchDifficulty: 42,
+          alertRate: 0.28,
+          xp: 105,
+          coins: 85,
+          reputation: 8,
+          body: "#161515",
+          wing: "#222222",
+          chest: "#1b1b1b",
+          accent: "#ffffff",
+          beak: "#df4635",
+          movementStyle: "water_glide",
+          fieldGuide:
+            "A large mostly black waterbird with white wing tips visible in flight and an orange-red bill."
+        },
+        {
+          id: "carnabys_black_cockatoo",
+          commonName: "Carnaby’s Black-Cockatoo",
+          scientificName: "Zanda latirostris",
+          rarity: "legendary",
+          handling: "observe_only",
+          spawnWeight: 1,
+          levelRequired: 5,
+          size: 30,
+          speed: 72,
+          catchDifficulty: 999,
+          alertRate: 0.45,
+          xp: 140,
+          coins: 0,
+          reputation: 18,
+          body: "#171719",
+          wing: "#101011",
+          chest: "#1c1c1e",
+          accent: "#f0f0df",
+          beak: "#a9a190",
+          movementStyle: "conservation_flyover",
+          fieldGuide:
+            "A south-west Western Australian black-cockatoo. In this game it is observed and protected, not captured."
+        }
+      ];
+
+      // Net records define the store upgrades and how the thrown net behaves.
+      const NETS = [
+        {
+          id: "starter",
+          name: "Starter Net",
+          shortName: "Starter",
+          cost: 0,
+          unlockLevel: 1,
+          radius: 42,
+          range: 430,
+          throwSpeed: 560,
+          cooldownMs: 1000,
+          baseCatchChance: 76,
+          rareBonus: 0,
+          stealth: 0,
+          description:
+            "A balanced soft ranger net. Good range, average opening size, and forgiving cooldown."
+        },
+        {
+          id: "wide",
+          name: "Wide Net",
+          shortName: "Wide",
+          cost: 110,
+          unlockLevel: 2,
+          radius: 62,
+          range: 360,
+          throwSpeed: 455,
+          cooldownMs: 1350,
+          baseCatchChance: 72,
+          rareBonus: -2,
+          stealth: 0,
+          description:
+            "Opens wide and is easier to aim, but travels slower and has a longer cooldown."
+        },
+        {
+          id: "quick",
+          name: "Quick Net",
+          shortName: "Quick",
+          cost: 165,
+          unlockLevel: 3,
+          radius: 34,
+          range: 510,
+          throwSpeed: 760,
+          cooldownMs: 650,
+          baseCatchChance: 78,
+          rareBonus: 0,
+          stealth: 0,
+          description:
+            "Fast and responsive. Excellent for skilled timing, but the smaller opening demands accuracy."
+        },
+        {
+          id: "silent",
+          name: "Silent Net",
+          shortName: "Silent",
+          cost: 320,
+          unlockLevel: 4,
+          radius: 44,
+          range: 440,
+          throwSpeed: 570,
+          cooldownMs: 1050,
+          baseCatchChance: 79,
+          rareBonus: 8,
+          stealth: 0.38,
+          description:
+            "A quieter conservation net that creates less stress and helps with skittish rare birds."
+        }
+      ];
+
+      // ============================================================
+      // JS 2. DOM references and game state
+      // ============================================================
+
+      // Canvas setup. All game graphics are drawn here.
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Screens.
+      const landingPage = document.getElementById("landingPage");
+      const loginPage = document.getElementById("loginPage");
+      const startGameButton = document.getElementById("startGameButton");
+      const loginButton = document.getElementById("loginButton");
+      const backButton = document.getElementById("backButton");
+      const loginForm = document.getElementById("loginForm");
+      const signupButton = document.getElementById("signupButton");
+
+      // HUD values.
+      const levelText = document.getElementById("levelText");
+      const xpFill = document.getElementById("xpFill");
+      const xpText = document.getElementById("xpText");
+      const coinText = document.getElementById("coinText");
+      const repText = document.getElementById("repText");
+      const netText = document.getElementById("netText");
+
+      // Main action buttons.
+      const storeButton = document.getElementById("storeButton");
+      const guideButton = document.getElementById("guideButton");
+      const resetButton = document.getElementById("resetButton");
+
+      // Shared modal and notification area.
+      const modalBackdrop = document.getElementById("modalBackdrop");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalBody = document.getElementById("modalBody");
+      const closeModalButton = document.getElementById("closeModalButton");
+      const toastStack = document.getElementById("toastStack");
+
+      // Canvas dimensions are updated by resizeCanvas().
+      let width = 900;
+      let height = 620;
+      let lastTime = performance.now();
+
+      // Runtime objects currently active in the game world.
+      let birds = [];
+      let floatingTexts = [];
+      let activeNet = null;
+
+      // Timers controlling bird spawning and net cooldown.
+      let spawnTimer = 0;
+      let nextSpawnDelay = random(600, 1500);
+      let nextThrowAt = 0;
+      let cooldownPulse = 0;
+
+      // Pointer tracks the mouse/touch location for aiming.
+      const pointer = {
+        x: 450,
+        y: 300,
+        active: false
+      };
+
+      // Player/ranger location near the bottom of the canvas.
+      const player = {
+        x: 450,
+        y: 560,
+        radius: 24,
+        bob: 0
+      };
+
+      // Save data is loaded once, then updated whenever rewards or purchases happen.
+      let save = loadSave();
+
+      // ============================================================
+      // JS 3. Save, progression, and utility helpers
+      // ============================================================
+
+      // Creates a new save file shape, including an empty collection entry for every bird.
+      function createDefaultSave() {
+        const collection = {};
+
+        for (const bird of BIRDS) {
+          collection[bird.id] = {
+            discovered: false,
+            observed: false,
+            totalHandled: 0,
+            totalObserved: 0,
+            bestQuality: null,
+            firstSeenAt: null
+          };
+        }
+
+        return {
+          xp: 0,
+          coins: 0,
+          reputation: 0,
+          equippedNetId: "starter",
+          ownedNetIds: ["starter"],
+          collection,
+          totalSafeHandles: 0,
+          totalObservations: 0
+        };
+      }
+
+      // Loads browser save data and merges it with the current bird/net lists so old saves still work after updates.
+      function loadSave() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : null;
+          const base = createDefaultSave();
+
+          if (!parsed || typeof parsed !== "object") {
+            return base;
+          }
+
+          const mergedCollection = { ...base.collection };
+
+          for (const bird of BIRDS) {
+            mergedCollection[bird.id] = {
+              ...base.collection[bird.id],
+              ...(parsed.collection ? parsed.collection[bird.id] : {})
+            };
+          }
+
+          const merged = {
+            ...base,
+            ...parsed,
+            collection: mergedCollection,
+            ownedNetIds:
+              Array.isArray(parsed.ownedNetIds) && parsed.ownedNetIds.length
+                ? parsed.ownedNetIds
+                : ["starter"]
+          };
+
+          if (!merged.ownedNetIds.includes("starter")) {
+            merged.ownedNetIds.push("starter");
+          }
+
+          if (!NETS.some((net) => net.id === merged.equippedNetId)) {
+            merged.equippedNetId = "starter";
+          }
+
+          return merged;
+        } catch (error) {
+          console.warn("Could not load save. Starting fresh.", error);
+          return createDefaultSave();
+        }
+      }
+
+      // Stores the current save data in localStorage.
+      function writeSave() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+      }
+
+      // Returns the XP needed to move from the given level to the next level.
+      function xpRequiredForLevel(level) {
+        return Math.floor(75 * Math.pow(level, 1.45));
+      }
+
+      // Converts total XP into the current level, current-level XP, and XP needed for the next level.
+      function getLevelInfo(totalXp) {
+        let level = 1;
+        let remaining = totalXp;
+
+        while (remaining >= xpRequiredForLevel(level)) {
+          remaining -= xpRequiredForLevel(level);
+          level += 1;
+        }
+
+        return {
+          level,
+          current: remaining,
+          needed: xpRequiredForLevel(level)
+        };
+      }
+
+      // Finds the currently equipped net, falling back to the starter net if something is wrong.
+      function getEquippedNet() {
+        return NETS.find((net) => net.id === save.equippedNetId) || NETS[0];
+      }
+
+      // Keeps a number inside a minimum and maximum range.
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      // Returns a random decimal between min and max.
+      function random(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      // Measures the straight-line distance between two points.
+      function distance(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      // Escapes text before placing it into HTML, which prevents accidental markup injection.
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      // Creates a unique ID for temporary game objects like spawned birds.
+      function safeId() {
+        if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+          return globalThis.crypto.randomUUID();
+        }
+
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      // Resizes the drawing canvas to match the visible game area and recentres the ranger.
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+        width = Math.max(320, rect.width);
+        height = Math.max(480, rect.height);
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        player.x = width / 2;
+        player.y = height - 68;
+
+        if (!pointer.active) {
+          pointer.x = width / 2;
+          pointer.y = height / 2;
+        }
+      }
+
+      // ============================================================
+      // JS 4. Bird spawning and movement
+      // ============================================================
+
+      // Chooses a bird that the player has unlocked, using spawnWeight to make common birds appear more often.
+      function chooseWeightedBird() {
+        const level = getLevelInfo(save.xp).level;
+
+        const availableBirds = BIRDS.filter((bird) => level >= bird.levelRequired);
+
+        const totalWeight = availableBirds.reduce((sum, bird) => sum + bird.spawnWeight, 0);
+        let roll = Math.random() * totalWeight;
+
+        for (const bird of availableBirds) {
+          roll -= bird.spawnWeight;
+
+          if (roll <= 0) {
+            return bird;
+          }
+        }
+
+        return availableBirds[0];
+      }
+
+      // Creates one bird in the habitat and gives it starting position, velocity, timers, and behaviour state.
+      function spawnBird() {
+        const data = chooseWeightedBird();
+
+        let x = random(50, width - 50);
+        let y = random(82, height - 170);
+
+        if (data.movementStyle === "water_glide") {
+          x = random(80, width - 80);
+          y = height - 172;
+        }
+
+        if (data.movementStyle === "conservation_flyover") {
+          x = Math.random() < 0.5 ? -60 : width + 60;
+          y = random(90, height * 0.42);
+        }
+
+        const angle = random(0, Math.PI * 2);
+        const direction = data.movementStyle === "conservation_flyover"
+          ? x < 0
+            ? 1
+            : -1
+          : Math.cos(angle) >= 0
+            ? 1
+            : -1;
+
+        const speed = data.speed * random(0.84, 1.18);
+
+        birds.push({
+          uid: safeId(),
+          data,
+          x,
+          y,
+          vx: direction * speed,
+          vy: Math.sin(angle) * speed * 0.48,
+          size: data.size,
+          alert: 0,
+          state: "foraging",
+          age: 0,
+          flap: random(0, Math.PI * 2),
+          turnTimer: random(0.45, 1.5),
+          pauseTimer: 0,
+          lifeLimit:
+            data.rarity === "legendary"
+              ? random(7, 11)
+              : data.rarity === "epic"
+                ? random(12, 17)
+                : data.rarity === "rare"
+                  ? random(14, 22)
+                  : random(20, 31)
+        });
+      }
+
+      // Adds new birds over time while keeping the total number on screen manageable.
+      function updateSpawning(deltaTime) {
+        spawnTimer += deltaTime * 1000;
+
+        const maxBirds = width < 640 ? 5 : 8;
+
+        if (birds.length < maxBirds && spawnTimer >= nextSpawnDelay) {
+          spawnBird();
+
+          spawnTimer = 0;
+          nextSpawnDelay = random(650, 1650);
+        }
+      }
+
+      // Updates alertness, movement, fleeing behaviour, and off-screen cleanup for every bird.
+      function updateBirds(deltaTime) {
+        const net = getEquippedNet();
+
+        for (const bird of birds) {
+          bird.age += deltaTime;
+          bird.flap += deltaTime * 9;
+          bird.turnTimer -= deltaTime;
+          bird.pauseTimer = Math.max(0, bird.pauseTimer - deltaTime);
+
+          const pointerDistance = distance(pointer.x, pointer.y, bird.x, bird.y);
+
+          if (pointer.active && pointerDistance < 86) {
+            bird.alert += bird.data.alertRate * (1 - net.stealth) * deltaTime * 0.55;
+          } else {
+            bird.alert -= deltaTime * 0.075;
+          }
+
+          if (activeNet) {
+            const netDistance = distance(activeNet.x, activeNet.y, bird.x, bird.y);
+            if (netDistance < activeNet.radius + 90) {
+              bird.alert += bird.data.alertRate * (1 - net.stealth) * deltaTime * 1.2;
+            }
+          }
+
+          bird.alert = clamp(bird.alert, 0, 1.55);
+
+          applyMovementStyle(bird, deltaTime);
+
+          if (
+            bird.age > bird.lifeLimit ||
+            (bird.alert > 1.24 && ["rare", "epic", "legendary"].includes(bird.data.rarity))
+          ) {
+            bird.state = "fleeing";
+          }
+
+          if (bird.state === "fleeing") {
+            bird.vy -= 120 * deltaTime;
+            bird.vx += bird.vx >= 0 ? 28 * deltaTime : -28 * deltaTime;
+          }
+
+          bird.x += bird.vx * deltaTime;
+          bird.y += bird.vy * deltaTime;
+
+          constrainBirdToHabitat(bird);
+        }
+
+        birds = birds.filter((bird) => {
+          const margin = 180;
+
+          return (
+            bird.x > -margin &&
+            bird.x < width + margin &&
+            bird.y > -margin &&
+            bird.y < height + margin
+          );
+        });
+      }
+
+      // Applies each species movement style, such as zigzagging, perching, gliding, or flyover movement.
+      function applyMovementStyle(bird, deltaTime) {
+        const data = bird.data;
+
+        if (bird.state === "fleeing") {
+          return;
+        }
+
+        if (data.movementStyle === "perch") {
+          if (bird.pauseTimer <= 0 && Math.random() < deltaTime * 0.55) {
+            bird.pauseTimer = random(0.7, 1.8);
+          }
+
+          if (bird.pauseTimer > 0) {
+            bird.vx *= 0.9;
+            bird.vy *= 0.88;
+            return;
+          }
+        }
+
+        if (bird.turnTimer > 0) {
+          return;
+        }
+
+        let speed = data.speed * random(0.78, 1.28) * (1 + bird.alert * 0.38);
+        let angle = Math.atan2(bird.vy, bird.vx);
+
+        if (data.movementStyle === "zigzag") {
+          angle += random(-1.25, 1.25);
+          speed *= 1.08;
+          bird.turnTimer = random(0.22, 0.58);
+        } else if (data.movementStyle === "territorial") {
+          const homeBias = Math.atan2(height * 0.45 - bird.y, width * 0.5 - bird.x);
+          angle = angle * 0.55 + homeBias * 0.45 + random(-0.7, 0.7);
+          bird.turnTimer = random(0.6, 1.25);
+        } else if (data.movementStyle === "flock") {
+          angle += random(-0.6, 0.6);
+          speed *= 0.94;
+          bird.turnTimer = random(0.5, 1.2);
+        } else if (data.movementStyle === "burst") {
+          angle += random(-0.85, 0.85);
+          speed *= Math.random() < 0.45 ? 1.55 : 0.55;
+          bird.turnTimer = random(0.25, 0.85);
+        } else if (data.movementStyle === "tiny_hopper") {
+          angle += random(-1.5, 1.5);
+          speed *= Math.random() < 0.5 ? 1.35 : 0.35;
+          bird.turnTimer = random(0.2, 0.55);
+        } else if (data.movementStyle === "water_glide") {
+          angle = Math.random() < 0.5 ? 0 : Math.PI;
+          speed *= 0.55;
+          bird.turnTimer = random(1.4, 2.8);
+        } else if (data.movementStyle === "conservation_flyover") {
+          speed *= 1.08;
+          bird.vx = bird.vx >= 0 ? speed : -speed;
+          bird.vy = Math.sin(bird.age * 1.4) * 14;
+          bird.turnTimer = random(0.9, 1.4);
+          return;
+        } else {
+          angle += random(-0.75, 0.75);
+          bird.turnTimer = random(0.5, 1.5);
+        }
+
+        bird.vx = Math.cos(angle) * speed;
+        bird.vy = Math.sin(angle) * speed * 0.52;
+      }
+
+      // Keeps normal birds inside the playable habitat area by bouncing them away from edges.
+      function constrainBirdToHabitat(bird) {
+        if (bird.state === "fleeing" || bird.data.movementStyle === "conservation_flyover") {
+          return;
+        }
+
+        const minY = 72;
+        const maxY = bird.data.movementStyle === "water_glide"
+          ? height - 148
+          : height - 135;
+
+        if (bird.x < 36) {
+          bird.x = 36;
+          bird.vx = Math.abs(bird.vx);
+        }
+
+        if (bird.x > width - 36) {
+          bird.x = width - 36;
+          bird.vx = -Math.abs(bird.vx);
+        }
+
+        if (bird.y < minY) {
+          bird.y = minY;
+          bird.vy = Math.abs(bird.vy);
+        }
+
+        if (bird.y > maxY) {
+          bird.y = maxY;
+          bird.vy = -Math.abs(bird.vy);
+        }
+      }
+
+      // ============================================================
+      // JS 5. Net throwing, catching, and conservation handling
+      // ============================================================
+
+      // Launches the currently equipped net from the ranger toward the pointer.
+      function fireNet(targetX, targetY) {
+        const now = performance.now();
+        const net = getEquippedNet();
+
+        if (activeNet) {
+          showToast("Net already deployed", "Let your current net finish its throw first.");
+          return;
+        }
+
+        if (now < nextThrowAt) {
+          cooldownPulse = 1;
+          showToast("Net cooling down", "A calm ranger waits between throws.");
+          return;
+        }
+
+        const dx = targetX - player.x;
+        const dy = targetY - player.y;
+        const length = Math.hypot(dx, dy) || 1;
+
+        if (dy > 30) {
+          showToast("Aim into the habitat", "Launch upward or sideways toward the birds, not into the ranger’s feet.");
+          return;
+        }
+
+        const directionX = dx / length;
+        const directionY = dy / length;
+
+        activeNet = {
+          x: player.x,
+          y: player.y - 16,
+          startX: player.x,
+          startY: player.y - 16,
+          vx: directionX * net.throwSpeed,
+          vy: directionY * net.throwSpeed,
+          radius: 9,
+          maxRadius: net.radius,
+          range: net.range,
+          age: 0,
+          hit: false
+        };
+
+        nextThrowAt = now + net.cooldownMs;
+      }
+
+      // Moves the active net projectile, expands its soft opening, and checks for bird contact.
+      function updateNetProjectile(deltaTime) {
+        if (!activeNet) {
+          return;
+        }
+
+        activeNet.age += deltaTime;
+        activeNet.x += activeNet.vx * deltaTime;
+        activeNet.y += activeNet.vy * deltaTime;
+
+        activeNet.radius = Math.min(
+          activeNet.maxRadius,
+          activeNet.radius + deltaTime * 210
+        );
+
+        for (const bird of birds) {
+          if (bird.state === "fleeing") {
+            continue;
+          }
+
+          const hitDistance = distance(activeNet.x, activeNet.y, bird.x, bird.y);
+
+          if (hitDistance <= activeNet.radius + bird.size) {
+            handleNetHitBird(bird, activeNet);
+            activeNet = null;
+            return;
+          }
+        }
+
+        const travelled = distance(
+          activeNet.x,
+          activeNet.y,
+          activeNet.startX,
+          activeNet.startY
+        );
+
+        if (
+          travelled >= activeNet.range ||
+          activeNet.x < -90 ||
+          activeNet.x > width + 90 ||
+          activeNet.y < -90 ||
+          activeNet.y > height + 90
+        ) {
+          scareNearbyBirds(activeNet.x, activeNet.y);
+
+          floatingTexts.push({
+            text: "Soft net landed",
+            x: activeNet.x,
+            y: activeNet.y,
+            color: "#697463",
+            alpha: 1,
+            age: 0,
+            life: 0.9
+          });
+
+          activeNet = null;
+        }
+      }
+
+      // Routes a net hit either to normal catch handling or observe-only conservation handling.
+      function handleNetHitBird(bird, projectile) {
+        if (bird.data.handling === "observe_only") {
+          observeConservationBird(bird);
+          return;
+        }
+
+        attemptCatch(bird, projectile);
+      }
+
+      // Calculates catch success from net stats, aim accuracy, bird difficulty, and bird alertness.
+      function attemptCatch(bird, projectile) {
+        const net = getEquippedNet();
+        const data = bird.data;
+
+        const distanceScore = clamp(
+          1 - distance(projectile.x, projectile.y, bird.x, bird.y) / (projectile.radius + bird.size),
+          0,
+          1
+        );
+
+        const rareBonus = ["rare", "epic"].includes(data.rarity) ? net.rareBonus : 0;
+
+        const catchChance = clamp(
+          net.baseCatchChance +
+            rareBonus +
+            distanceScore * 15 -
+            data.catchDifficulty -
+            bird.alert * 18,
+          5,
+          96
+        );
+
+        const roll = Math.random() * 100;
+
+        if (roll <= catchChance) {
+          safelyHandleBird(bird, distanceScore);
+        } else {
+          bird.alert += 0.58;
+
+          if (bird.alert > 1.05) {
+            bird.state = "fleeing";
+          }
+
+          floatingTexts.push({
+            text: "Slipped away",
+            x: bird.x,
+            y: bird.y - 30,
+            color: "#b4654d",
+            alpha: 1,
+            age: 0,
+            life: 1
+          });
+
+          showToast(
+            "Gentle miss",
+            `${data.commonName} slipped away and became more alert.`
+          );
+        }
+      }
+
+      // Rewards the player for a successful safe catch, then records the species in the field guide.
+      function safelyHandleBird(bird, distanceScore) {
+        const data = bird.data;
+        const entry = save.collection[data.id];
+
+        const firstDiscovery = !entry.discovered;
+        const quality = distanceScore >= 0.72 ? "Excellent" : distanceScore >= 0.4 ? "Clean" : "Safe";
+        const qualityMultiplier = quality === "Excellent" ? 1.25 : quality === "Clean" ? 1.08 : 1;
+        const firstMultiplier = firstDiscovery ? 2 : 1;
+
+        const xpEarned = Math.round(data.xp * qualityMultiplier * firstMultiplier);
+        const coinsEarned = Math.round(data.coins * qualityMultiplier);
+        const repEarned = Math.round(data.reputation * qualityMultiplier);
+
+        save.xp += xpEarned;
+        save.coins += coinsEarned;
+        save.reputation += repEarned;
+        save.totalSafeHandles += 1;
+
+        entry.discovered = true;
+        entry.observed = true;
+        entry.totalHandled += 1;
+        entry.totalObserved += 1;
+        entry.firstSeenAt = entry.firstSeenAt || new Date().toISOString();
+
+        if (!entry.bestQuality || qualityRank(quality) > qualityRank(entry.bestQuality)) {
+          entry.bestQuality = quality;
+        }
+
+        birds = birds.filter((item) => item.uid !== bird.uid);
+
+        floatingTexts.push({
+          text: `+${xpEarned} XP  +${coinsEarned} coins  +${repEarned} rep`,
+          x: bird.x,
+          y: bird.y - 34,
+          color: RARITY[data.rarity].color,
+          alpha: 1,
+          age: 0,
+          life: 1.25
+        });
+
+        showToast(
+          `${quality} handling: ${data.commonName}`,
+          `${data.commonName} was safely checked, tagged, and released. ${
+            firstDiscovery ? "New field guide entry unlocked. " : ""
+          }+${xpEarned} XP, +${coinsEarned} coins, +${repEarned} reputation.`
+        );
+
+        writeSave();
+        updateHud();
+      }
+
+      // Rewards the player for observing a protected bird without capturing it.
+      function observeConservationBird(bird) {
+        const data = bird.data;
+        const entry = save.collection[data.id];
+
+        const firstDiscovery = !entry.discovered;
+
+        const xpEarned = firstDiscovery ? data.xp * 2 : data.xp;
+        const repEarned = firstDiscovery ? data.reputation * 2 : data.reputation;
+
+        save.xp += xpEarned;
+        save.reputation += repEarned;
+        save.totalObservations += 1;
+
+        entry.discovered = true;
+        entry.observed = true;
+        entry.totalObserved += 1;
+        entry.firstSeenAt = entry.firstSeenAt || new Date().toISOString();
+        entry.bestQuality = "Observed";
+
+        birds = birds.filter((item) => item.uid !== bird.uid);
+
+        floatingTexts.push({
+          text: `Observed! +${xpEarned} XP  +${repEarned} rep`,
+          x: bird.x,
+          y: bird.y - 36,
+          color: RARITY[data.rarity].color,
+          alpha: 1,
+          age: 0,
+          life: 1.4
+        });
+
+        showToast(
+          `Conservation observation: ${data.commonName}`,
+          `${data.commonName} was respectfully observed and logged. This species is protected in-game, not captured.`
+        );
+
+        writeSave();
+        updateHud();
+      }
+
+      // Converts handling quality labels into numbers so the best result can be saved.
+      function qualityRank(quality) {
+        if (quality === "Observed") return 4;
+        if (quality === "Excellent") return 3;
+        if (quality === "Clean") return 2;
+        if (quality === "Safe") return 1;
+        return 0;
+      }
+
+      // Raises alertness for nearby birds when a net lands without catching anything.
+      function scareNearbyBirds(x, y) {
+        const net = getEquippedNet();
+
+        for (const bird of birds) {
+          const d = distance(x, y, bird.x, bird.y);
+
+          if (d < 130) {
+            bird.alert += 0.25 * (1 - net.stealth);
+
+            if (bird.alert > 1.25 && ["rare", "epic", "legendary"].includes(bird.data.rarity)) {
+              bird.state = "fleeing";
+            }
+          }
+        }
+      }
+
+      // ============================================================
+      // JS 6. HUD, toast messages, and drawing
+      // ============================================================
+
+      // Animates small reward/miss messages that float upward and fade out.
+      function updateFloatingTexts(deltaTime) {
+        for (const text of floatingTexts) {
+          text.age += deltaTime;
+          text.y -= deltaTime * 36;
+          text.alpha = 1 - text.age / text.life;
+        }
+
+        floatingTexts = floatingTexts.filter((text) => text.age < text.life);
+      }
+
+      // Refreshes the top HUD from the current save data.
+      function updateHud() {
+        const levelInfo = getLevelInfo(save.xp);
+        const net = getEquippedNet();
+
+        levelText.textContent = String(levelInfo.level);
+        xpText.textContent = `${levelInfo.current} / ${levelInfo.needed}`;
+        xpFill.style.width = `${clamp((levelInfo.current / levelInfo.needed) * 100, 0, 100)}%`;
+
+        coinText.textContent = String(save.coins);
+        repText.textContent = String(save.reputation);
+        netText.textContent = net.shortName;
+      }
+
+      // Shows a temporary message card in the top-left of the game area.
+      function showToast(title, message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = `
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(message)}</p>
+        `;
+
+        toastStack.prepend(toast);
+
+        while (toastStack.children.length > 3) {
+          toastStack.lastElementChild.remove();
+        }
+
+        window.setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(-8px)";
+          toast.style.transition = "opacity 240ms ease, transform 240ms ease";
+
+          window.setTimeout(() => {
+            toast.remove();
+          }, 260);
+        }, 3100);
+      }
+
+      // Main drawing pipeline: background, aim guide, birds, net, ranger, text, and cooldown.
+      function draw() {
+        drawBackground();
+        drawAimGuide();
+
+        const sortedBirds = [...birds].sort((a, b) => a.y - b.y);
+
+        for (const bird of sortedBirds) {
+          drawBird(bird);
+        }
+
+        drawNetProjectile();
+        drawPlayer();
+        drawFloatingTexts();
+        drawCooldownIndicator();
+      }
+
+      // Draws the sky, sun, hills, pond, grass, and other scenery.
+      function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, "#bdeaff");
+        sky.addColorStop(0.5, "#e8f9ff");
+        sky.addColorStop(1, "#c9ecaa");
+
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "rgba(255, 225, 112, 0.9)";
+        ctx.beginPath();
+        ctx.arc(width - 94, 84, 38, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawCloud(width * 0.18, 86, 1.12);
+        drawCloud(width * 0.48, 121, 0.82);
+        drawCloud(width * 0.76, 152, 1);
+
+        ctx.fillStyle = "#94d484";
+        drawHill(-90, height - 148, width * 0.66, 180);
+
+        ctx.fillStyle = "#7cc371";
+        drawHill(width * 0.28, height - 128, width * 0.88, 190);
+
+        drawWaterEdge();
+
+        ctx.fillStyle = "#67b55f";
+        ctx.fillRect(0, height - 122, width, 122);
+
+        drawGrass();
+      }
+
+      // Draws the pond area used by water birds such as the Black Swan.
+      function drawWaterEdge() {
+        const pondY = height - 188;
+
+        ctx.fillStyle = "rgba(101, 178, 206, 0.45)";
+        ctx.beginPath();
+        ctx.ellipse(width * 0.74, pondY, width * 0.24, 34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
+        ctx.lineWidth = 2;
+
+        for (let i = 0; i < 4; i += 1) {
+          ctx.beginPath();
+          ctx.ellipse(width * 0.74, pondY + i * 3, width * (0.12 + i * 0.028), 8 + i * 2, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Draws foreground grass blades and small flowers.
+      function drawGrass() {
+        for (let i = 0; i < 78; i += 1) {
+          const x = (i * 137.5) % width;
+          const y = height - randomSeeded(i, 18, 108);
+          const bladeHeight = randomSeeded(i + 44, 10, 31);
+
+          ctx.strokeStyle = i % 3 === 0 ? "#559e54" : "#64b762";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, height);
+          ctx.quadraticCurveTo(x + 5, y + bladeHeight, x + 2, y);
+          ctx.stroke();
+
+          if (i % 8 === 0) {
+            ctx.fillStyle = i % 16 === 0 ? "#f5d66e" : "#ef9bc5";
+            ctx.beginPath();
+            ctx.arc(x + 4, y - 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // Creates repeatable decorative variation, so grass does not flicker every frame.
+      function randomSeeded(seed, min, max) {
+        const x = Math.sin(seed * 999) * 10000;
+        return min + (x - Math.floor(x)) * (max - min);
+      }
+
+      // Draws one simple curved hill shape.
+      function drawHill(x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x, height);
+        ctx.quadraticCurveTo(x + w * 0.46, y - h, x + w, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Draws a soft cloud made from overlapping circles.
+      function drawCloud(x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+        ctx.beginPath();
+        ctx.arc(0, 8, 20, 0, Math.PI * 2);
+        ctx.arc(22, 0, 27, 0, Math.PI * 2);
+        ctx.arc(52, 10, 19, 0, Math.PI * 2);
+        ctx.arc(28, 18, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // Draws the dashed aiming line and crosshair from the ranger to the pointer.
+      function drawAimGuide() {
+        const net = getEquippedNet();
+        const dx = pointer.x - player.x;
+        const dy = pointer.y - (player.y - 16);
+        const length = Math.hypot(dx, dy) || 1;
+        const cappedLength = Math.min(length, net.range);
+        const endX = player.x + (dx / length) * cappedLength;
+        const endY = player.y - 16 + (dy / length) * cappedLength;
+
+        ctx.save();
+
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = "rgba(47, 91, 58, 0.6)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y - 16);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pointer.x, pointer.y, 14, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(63, 143, 84, 0.74)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pointer.x - 22, pointer.y);
+        ctx.lineTo(pointer.x - 8, pointer.y);
+        ctx.moveTo(pointer.x + 8, pointer.y);
+        ctx.lineTo(pointer.x + 22, pointer.y);
+        ctx.moveTo(pointer.x, pointer.y - 22);
+        ctx.lineTo(pointer.x, pointer.y - 8);
+        ctx.moveTo(pointer.x, pointer.y + 8);
+        ctx.lineTo(pointer.x, pointer.y + 22);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // Draws the ranger character and hand net.
+      function drawPlayer() {
+        player.bob += 0.055;
+        const bob = Math.sin(player.bob) * 1.2;
+        const x = player.x;
+        const y = player.y + bob;
+
+        ctx.save();
+
+        ctx.fillStyle = "rgba(34, 62, 39, 0.25)";
+        ctx.beginPath();
+        ctx.ellipse(x, y + 32, 34, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#497b54";
+        roundRect(x - 16, y - 16, 32, 38, 13);
+        ctx.fill();
+
+        ctx.fillStyle = "#f1c9a5";
+        ctx.beginPath();
+        ctx.arc(x, y - 30, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#6a8a4d";
+        ctx.beginPath();
+        ctx.ellipse(x, y - 43, 22, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#55783d";
+        roundRect(x - 13, y - 50, 26, 12, 6);
+        ctx.fill();
+
+        ctx.strokeStyle = "#2d4932";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x + 12, y - 5);
+        ctx.lineTo(x + 35, y - 28);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#6b5844";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + 35, y - 28);
+        ctx.lineTo(x + 54, y - 48);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + 57, y - 51, 12, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // Draws one bird using its species colour data and simple animated wing movement.
+      function drawBird(bird) {
+        const data = bird.data;
+        const rarity = RARITY[data.rarity];
+        const facing = bird.vx >= 0 ? 1 : -1;
+        const wingLift = Math.sin(bird.flap) * 4;
+        const hover = distance(pointer.x, pointer.y, bird.x, bird.y) < 54;
+
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        ctx.scale(facing, 1);
+
+        if (["rare", "epic", "legendary"].includes(data.rarity)) {
+          ctx.fillStyle = rarity.glow;
+          ctx.beginPath();
+          ctx.arc(0, 0, data.size * 2.15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (data.rarity === "legendary") {
+          ctx.strokeStyle = "rgba(255, 222, 125, 0.72)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, data.size * 2.36 + Math.sin(bird.flap) * 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = data.wing;
+        ctx.beginPath();
+        ctx.ellipse(-4, 5 + wingLift, data.size * 0.9, data.size * 0.44, -0.42, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = data.body;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, data.size, data.size * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = data.chest || lightenColor(data.body, 20);
+        ctx.beginPath();
+        ctx.ellipse(3, 4, data.size * 0.58, data.size * 0.45, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = data.head || lightenColor(data.body, 12);
+        ctx.beginPath();
+        ctx.arc(8, -6, data.size * 0.58, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (data.accent) {
+          ctx.fillStyle = data.accent;
+
+          if (data.id === "willie_wagtail") {
+            ctx.beginPath();
+            ctx.ellipse(10, -12, 8, 2, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (data.id === "superb_fairy_wren") {
+            ctx.beginPath();
+            ctx.arc(7, -12, data.size * 0.27, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (data.id === "carnabys_black_cockatoo") {
+            ctx.beginPath();
+            ctx.ellipse(-14, 0, 6, 12, -0.25, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (data.id === "black_swan") {
+            ctx.beginPath();
+            ctx.ellipse(-6, 6 + wingLift, data.size * 0.22, data.size * 0.12, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (data.id === "rainbow_lorikeet") {
+            ctx.beginPath();
+            ctx.ellipse(4, 5, data.size * 0.35, data.size * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.fillStyle = data.beak || "#e4b34f";
+        ctx.beginPath();
+        ctx.moveTo(data.size * 0.9, -5);
+        ctx.lineTo(data.size * 1.38, -1);
+        ctx.lineTo(data.size * 0.9, 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#111817";
+        ctx.beginPath();
+        ctx.arc(data.size * 0.56, -10, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(42, 56, 42, 0.52)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-2, data.size * 0.62);
+        ctx.lineTo(-5, data.size * 0.97);
+        ctx.moveTo(5, data.size * 0.6);
+        ctx.lineTo(8, data.size * 0.97);
+        ctx.stroke();
+
+        ctx.restore();
+
+        if (bird.alert > 0.2) {
+          drawAlertMeter(bird);
+        }
+
+        if (hover) {
+          drawBirdLabel(bird);
+        }
+      }
+
+      // Lightens a hex colour for fallback highlights.
+      function lightenColor(hex, amount) {
+        const clean = hex.replace("#", "");
+        const num = parseInt(clean, 16);
+
+        const r = clamp((num >> 16) + amount, 0, 255);
+        const g = clamp(((num >> 8) & 0x00ff) + amount, 0, 255);
+        const b = clamp((num & 0x0000ff) + amount, 0, 255);
+
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      // Draws a small hover label showing the bird name and rarity.
+      function drawBirdLabel(bird) {
+        const data = bird.data;
+        const rarity = RARITY[data.rarity];
+        const label = `${data.commonName} · ${rarity.label}`;
+
+        ctx.font = "800 13px system-ui, sans-serif";
+        const metrics = ctx.measureText(label);
+        const labelWidth = metrics.width + 20;
+        const labelHeight = 27;
+        const x = clamp(bird.x - labelWidth / 2, 8, width - labelWidth - 8);
+        const y = bird.y - bird.size - 52;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+        roundRect(x, y, labelWidth, labelHeight, 999);
+        ctx.fill();
+
+        ctx.fillStyle = rarity.color;
+        ctx.beginPath();
+        ctx.arc(x + 12, y + labelHeight / 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#26362a";
+        ctx.fillText(label, x + 22, y + 18);
+      }
+
+      // Draws the alert meter above a bird when it becomes wary.
+      function drawAlertMeter(bird) {
+        const barWidth = 36;
+        const x = bird.x - barWidth / 2;
+        const y = bird.y - bird.size - 20;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
+        roundRect(x, y, barWidth, 6, 999);
+        ctx.fill();
+
+        ctx.fillStyle = bird.alert > 0.9 ? "#d76b5d" : "#e6aa3c";
+        roundRect(x, y, barWidth * clamp(bird.alert / 1.25, 0, 1), 6, 999);
+        ctx.fill();
+      }
+
+      // Draws the thrown net while it is travelling.
+      function drawNetProjectile() {
+        if (!activeNet) {
+          return;
+        }
+
+        ctx.save();
+
+        const pulse = Math.sin(activeNet.age * 18) * 2;
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(activeNet.x, activeNet.y, activeNet.radius + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(63, 143, 84, 0.68)";
+        ctx.lineWidth = 1.5;
+
+        for (let i = 0; i < 5; i += 1) {
+          const angle = (Math.PI * 2 * i) / 5 + activeNet.age * 2;
+          ctx.beginPath();
+          ctx.moveTo(activeNet.x, activeNet.y);
+          ctx.lineTo(
+            activeNet.x + Math.cos(angle) * activeNet.radius,
+            activeNet.y + Math.sin(angle) * activeNet.radius
+          );
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(activeNet.x, activeNet.y, activeNet.radius * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
+        ctx.beginPath();
+        ctx.arc(activeNet.x, activeNet.y, activeNet.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // Draws the reload/cooldown indicator around the ranger.
+      function drawCooldownIndicator() {
+        const net = getEquippedNet();
+        const now = performance.now();
+        const remaining = clamp((nextThrowAt - now) / net.cooldownMs, 0, 1);
+
+        if (cooldownPulse > 0) {
+          cooldownPulse -= 0.055;
+        }
+
+        const x = player.x;
+        const y = player.y + 52;
+
+        ctx.save();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+        roundRect(x - 48, y, 96, 10, 999);
+        ctx.fill();
+
+        ctx.fillStyle = remaining <= 0 ? "#63ad6d" : "#dfa840";
+        roundRect(x - 48, y, 96 * (1 - remaining), 10, 999);
+        ctx.fill();
+
+        if (remaining <= 0) {
+          ctx.font = "800 12px system-ui, sans-serif";
+          ctx.fillStyle = "#2d5737";
+          ctx.textAlign = "center";
+          ctx.fillText("Ready", x, y - 5);
+        }
+
+        if (cooldownPulse > 0) {
+          ctx.strokeStyle = "rgba(215, 107, 93, 0.7)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(x, player.y - 18, 42 + cooldownPulse * 12, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      // Draws floating reward and status text.
+      function drawFloatingTexts() {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.font = "900 16px system-ui, sans-serif";
+
+        for (const text of floatingTexts) {
+          ctx.globalAlpha = clamp(text.alpha, 0, 1);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
+          ctx.strokeText(text.text, text.x, text.y);
+          ctx.fillStyle = text.color;
+          ctx.fillText(text.text, text.x, text.y);
+        }
+
+        ctx.restore();
+      }
+
+      // Helper used by the drawing code to create rounded rectangles.
+      function roundRect(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      // ============================================================
+      // JS 7. Store, field guide, input, and game startup
+      // ============================================================
+
+      // Opens the shared modal with a title and HTML body.
+      function openModal(title, bodyHtml) {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = bodyHtml;
+        modalBackdrop.classList.add("show");
+      }
+
+      // Closes and clears the shared modal.
+      function closeModal() {
+        modalBackdrop.classList.remove("show");
+        modalBody.innerHTML = "";
+      }
+
+      // Builds the store modal from the NETS data.
+      function renderStore() {
+        const level = getLevelInfo(save.xp).level;
+
+        const cards = NETS.map((net) => {
+          const owned = save.ownedNetIds.includes(net.id);
+          const equipped = save.equippedNetId === net.id;
+          const levelLocked = level < net.unlockLevel;
+          const cannotAfford = save.coins < net.cost;
+
+          let actionHtml = "";
+
+          if (owned && equipped) {
+            actionHtml = `<button class="mini-button" disabled>Equipped</button>`;
+          } else if (owned) {
+            actionHtml = `<button class="mini-button primary" data-equip-net="${escapeHtml(net.id)}">Equip</button>`;
+          } else {
+            actionHtml = `
+              <button
+                class="mini-button primary"
+                data-buy-net="${escapeHtml(net.id)}"
+                ${levelLocked || cannotAfford ? "disabled" : ""}
+              >
+                Buy for ${net.cost} coins
+              </button>
+            `;
+          }
+
+          const status = levelLocked
+            ? `Unlocks at level ${net.unlockLevel}`
+            : owned
+              ? "Owned"
+              : cannotAfford
+                ? `Need ${net.cost - save.coins} more coins`
+                : "Available";
+
+          return `
+            <article class="item-card ${levelLocked ? "locked" : ""}">
+              <h3>${escapeHtml(net.name)}</h3>
+              <p>${escapeHtml(net.description)}</p>
+
+              <div class="meta">
+                <span class="tag">Open ${net.radius}</span>
+                <span class="tag">Range ${net.range}</span>
+                <span class="tag">Speed ${net.throwSpeed}</span>
+                <span class="tag">${(net.cooldownMs / 1000).toFixed(2)}s cooldown</span>
+                ${net.rareBonus ? `<span class="tag rare">Rare +${net.rareBonus}%</span>` : ""}
+                ${net.stealth ? `<span class="tag conservation">Quiet</span>` : ""}
+              </div>
+
+              <p><strong>${escapeHtml(status)}</strong></p>
+
+              <div class="card-actions">
+                ${actionHtml}
+              </div>
+            </article>
+          `;
+        }).join("");
+
+        openModal("Net Store", `
+          <p style="margin-top: 0; color: #617060;">
+            Nets are now projectile tools. Bigger is not always better: wide nets are forgiving,
+            quick nets reward aim, and silent nets protect skittish birds from stress.
+          </p>
+
+          <div class="grid">${cards}</div>
+        `);
+
+        modalBody.querySelectorAll("[data-buy-net]").forEach((button) => {
+          button.addEventListener("click", () => buyNet(button.dataset.buyNet));
+        });
+
+        modalBody.querySelectorAll("[data-equip-net]").forEach((button) => {
+          button.addEventListener("click", () => equipNet(button.dataset.equipNet));
+        });
+      }
+
+      // Buys a net if the player meets the level and coin requirements.
+      function buyNet(netId) {
+        const net = NETS.find((item) => item.id === netId);
+        const level = getLevelInfo(save.xp).level;
+
+        if (!net) {
+          return;
+        }
+
+        if (save.ownedNetIds.includes(net.id)) {
+          return;
+        }
+
+        if (level < net.unlockLevel) {
+          showToast("Still locked", `${net.name} unlocks at level ${net.unlockLevel}.`);
+          return;
+        }
+
+        if (save.coins < net.cost) {
+          showToast("Not enough coins", `You need ${net.cost - save.coins} more coins.`);
+          return;
+        }
+
+        save.coins -= net.cost;
+        save.ownedNetIds.push(net.id);
+        save.equippedNetId = net.id;
+
+        writeSave();
+        updateHud();
+        renderStore();
+
+        showToast("New net equipped", `${net.name} is ready for field work.`);
+      }
+
+      // Equips an already owned net.
+      function equipNet(netId) {
+        if (!save.ownedNetIds.includes(netId)) {
+          return;
+        }
+
+        const net = NETS.find((item) => item.id === netId);
+
+        if (!net) {
+          return;
+        }
+
+        save.equippedNetId = net.id;
+
+        writeSave();
+        updateHud();
+        renderStore();
+
+        showToast("Net equipped", `${net.name} selected.`);
+      }
+
+      // Builds the field guide modal from the BIRDS data and saved collection state.
+      function renderFieldGuide() {
+        const discoveredCount = BIRDS.filter((bird) => save.collection[bird.id]?.discovered).length;
+        const handledCount = BIRDS.reduce((sum, bird) => {
+          return sum + (save.collection[bird.id]?.totalHandled || 0);
+        }, 0);
+        const observationCount = BIRDS.reduce((sum, bird) => {
+          return sum + (save.collection[bird.id]?.totalObserved || 0);
+        }, 0);
+
+        const cards = BIRDS.map((bird) => {
+          const entry = save.collection[bird.id] || {};
+          const discovered = Boolean(entry.discovered);
+          const rarity = RARITY[bird.rarity];
+
+          if (!discovered) {
+            return `
+              <article class="item-card locked">
+                <h3>Unknown Bird</h3>
+
+                <div class="meta">
+                  <span class="tag ${bird.rarity}">${escapeHtml(rarity.label)}</span>
+                  <span class="tag">Unlock Lv. ${bird.levelRequired}</span>
+                </div>
+
+                <p>
+                  A silhouette waits in your guide. Explore carefully and keep improving your ranger skills.
+                </p>
+              </article>
+            `;
+          }
+
+          const handlingLabel = bird.handling === "observe_only"
+            ? "Observe only"
+            : "Safe tag & release";
+
+          return `
+            <article class="item-card">
+              <h3>${escapeHtml(bird.commonName)}</h3>
+
+              <p style="margin-top: -2px;">
+                <em>${escapeHtml(bird.scientificName)}</em>
+              </p>
+
+              <div class="meta">
+                <span class="tag ${bird.rarity}">${escapeHtml(rarity.label)}</span>
+                <span class="tag conservation">${escapeHtml(handlingLabel)}</span>
+                <span class="tag">Handled ${entry.totalHandled || 0}</span>
+                <span class="tag">Observed ${entry.totalObserved || 0}</span>
+                <span class="tag">Best: ${escapeHtml(entry.bestQuality || "Logged")}</span>
+              </div>
+
+              <p>${escapeHtml(bird.fieldGuide)}</p>
+
+              <p>
+                <strong>Game rewards:</strong>
+                ${bird.xp} XP · ${bird.coins} coins · ${bird.reputation} rep
+              </p>
+            </article>
+          `;
+        }).join("");
+
+        openModal("Australian Field Guide", `
+          <p style="margin-top: 0; color: #617060;">
+            Progress: <strong>${discoveredCount}/${BIRDS.length}</strong> species discovered ·
+            <strong>${handledCount}</strong> safe handling records ·
+            <strong>${observationCount}</strong> observations.
+          </p>
+
+          <p style="color: #617060;">
+            Game rarity controls spawn chance and challenge. It is not the same as real-world conservation status.
+          </p>
+
+          <div class="grid">${cards}</div>
+        `);
+      }
+
+      // Opens a friendly confirmation modal before clearing player progress.
+      function confirmResetGame() {
+        openModal("Reset game progress?", `
+          <p style="margin-top: 0; color: #617060; line-height: 1.55;">
+            This will permanently clear your local Featherfield Preserve save on this browser.
+            Your XP, coins, reputation, owned nets, and field guide progress will all return to the start.
+          </p>
+
+          <p style="color: #617060; line-height: 1.55;">
+            This cannot be undone. Are you sure you want to reset the game?
+          </p>
+
+          <div class="card-actions" style="margin-top: 18px;">
+            <button class="mini-button" id="cancelResetButton">Cancel</button>
+            <button class="mini-button primary" id="confirmResetButton">Yes, reset my save</button>
+          </div>
+        `);
+
+        const cancelResetButton = document.getElementById("cancelResetButton");
+        const confirmResetButton = document.getElementById("confirmResetButton");
+
+        cancelResetButton.addEventListener("click", closeModal);
+        confirmResetButton.addEventListener("click", resetGame);
+      }
+
+      // Clears progress and restarts the save after the player confirms.
+      function resetGame() {
+        localStorage.removeItem(STORAGE_KEY);
+
+        save = createDefaultSave();
+        birds = [];
+        floatingTexts = [];
+        activeNet = null;
+        spawnTimer = 0;
+        nextSpawnDelay = random(600, 1500);
+        nextThrowAt = 0;
+        cooldownPulse = 0;
+
+        for (let i = 0; i < 4; i += 1) {
+          spawnBird();
+        }
+
+        writeSave();
+        updateHud();
+        closeModal();
+
+        showToast("Save reset", "Your preserve has been restarted.");
+      }
+
+      // Converts mouse/touch position into canvas coordinates for aiming.
+      function updatePointerFromEvent(event) {
+        const rect = canvas.getBoundingClientRect();
+
+        pointer.x = clamp(event.clientX - rect.left, 0, width);
+        pointer.y = clamp(event.clientY - rect.top, 0, height);
+        pointer.active = true;
+      }
+
+      // Main loop. Updates game state, draws the frame, then requests the next frame.
+      function gameLoop(now) {
+        const deltaTime = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+
+        updateSpawning(deltaTime);
+        updateBirds(deltaTime);
+        updateNetProjectile(deltaTime);
+        updateFloatingTexts(deltaTime);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // Hides the landing/login screens and starts the playable game view.
+      function startGame() {
+        landingPage.style.display = "none";
+        loginPage.classList.remove("show");
+        document.querySelector(".app").style.display = "grid";
+
+        resizeCanvas();
+        updateHud();
+
+        for (let i = 0; i < 5; i += 1) {
+          spawnBird();
+        }
+
+        showToast(
+          "Welcome, ranger",
+          "Aim from your ranger and launch the soft net. Birds are safely checked, tagged, and released."
+        );
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // Shows the prototype login screen.
+      function showLogin() {
+        landingPage.style.display = "none";
+        loginPage.classList.add("show");
+      }
+
+      // Returns from login to the landing screen.
+      function backToLanding() {
+        loginPage.classList.remove("show");
+        landingPage.style.display = "grid";
+        loginForm.reset();
+      }
+
+      // Prototype login handler. It accepts the form locally but does not authenticate against a server.
+      function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById("emailInput").value.trim();
+        const password = document.getElementById("passwordInput").value.trim();
+
+        if (email && password) {
+          showToast("Login successful", `Welcome back, ${email}!`);
+          loginForm.reset();
+          backToLanding();
+        }
+      }
+
+      // Prototype sign-up message. Real accounts would need backend code later.
+      function handleSignup() {
+        alert("Sign up feature coming soon!");
+      }
+
+      // ------------------------------------------------------------
+      // Event listeners
+      // ------------------------------------------------------------
+
+      canvas.addEventListener("pointermove", updatePointerFromEvent);
+
+      canvas.addEventListener("pointerenter", (event) => {
+        updatePointerFromEvent(event);
+        pointer.active = true;
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        pointer.active = false;
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        updatePointerFromEvent(event);
+        fireNet(pointer.x, pointer.y);
+      });
+
+      storeButton.addEventListener("click", renderStore);
+      guideButton.addEventListener("click", renderFieldGuide);
+      resetButton.addEventListener("click", confirmResetGame);
+      closeModalButton.addEventListener("click", closeModal);
+      startGameButton.addEventListener("click", startGame);
+      loginButton.addEventListener("click", showLogin);
+      backButton.addEventListener("click", backToLanding);
+      loginForm.addEventListener("submit", handleLogin);
+      signupButton.addEventListener("click", handleSignup);
+
+      modalBackdrop.addEventListener("click", (event) => {
+        if (event.target === modalBackdrop) {
+          closeModal();
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeModal();
+        }
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      resizeCanvas();
+      updateHud();
+    })();
+  </script>
+</body>
+</html>
