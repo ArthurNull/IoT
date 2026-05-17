@@ -437,11 +437,263 @@
         height: 100%;
       }
     }
+
+    .landing-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 238, 151, 0.55), transparent 35%),
+        linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .landing-content {
+      width: min(720px, 100%);
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 44px 32px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      animation: slideUp 600ms ease both;
+      overflow: hidden;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .landing-content h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.05;
+    }
+
+    .landing-content .subtitle {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.4vw, 1.2rem);
+      font-weight: 600;
+    }
+
+    .landing-content p {
+      margin: 0 0 28px;
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 1rem;
+    }
+
+    .landing-content .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+
+    .feature-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(99, 173, 109, 0.1);
+      border: 1px solid rgba(99, 173, 109, 0.18);
+    }
+
+    .feature-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--green-dark);
+    }
+
+    .feature-item span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .login-page {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 238, 151, 0.55), transparent 35%),
+        linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .login-page.show {
+      display: grid;
+    }
+
+    .login-content {
+      width: min(520px, 100%);
+      background: var(--panel-solid);
+      border-radius: 28px;
+      padding: 40px 30px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      animation: slideUp 600ms ease both;
+      text-align: center;
+    }
+
+    .login-content h2 {
+      margin: 0 0 22px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      line-height: 1.05;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .login-content input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid rgba(76, 93, 65, 0.18);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .login-content input:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .login-content input::placeholder {
+      color: var(--muted);
+    }
+
+    .login-button {
+      width: 100%;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-weight: 900;
+      font-size: 1rem;
+      color: white;
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 16px rgba(57, 125, 72, 0.25);
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .back-button,
+    .signup-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-weight: 900;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
+    }
+
+    .back-button {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid rgba(97, 112, 96, 0.22);
+      width: 100%;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      background: rgba(97, 112, 96, 0.08);
+    }
+
+    .signup-button {
+      width: 100%;
+      background: linear-gradient(180deg, #74b9df, #4f91bd);
+      color: white;
+      box-shadow: 0 7px 16px rgba(79, 145, 189, 0.24);
+    }
+
+    .signup-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
   </style>
 </head>
 
 <body>
-  <main class="app">
+  <div class="landing-page" id="landingPage">
+    <div class="landing-content">
+      <h1>Featherfield Preserve</h1>
+      <p class="subtitle">Australian birds, gentle ranger tools, safe tagging, and conservation field notes.</p>
+
+      <div class="features">
+        <div class="feature-item">
+          <strong>🐦 Catch</strong>
+          <span>Gently net birds to study and release them safely.</span>
+        </div>
+        <div class="feature-item">
+          <strong>📚 Learn</strong>
+          <span>Build your field guide with species and sightings.</span>
+        </div>
+        <div class="feature-item">
+          <strong>🎯 Progress</strong>
+          <span>Earn XP and reputation for better ranger tools.</span>
+        </div>
+        <div class="feature-item">
+          <strong>✨ Explore</strong>
+          <span>Discover rarer birds with careful observation.</span>
+        </div>
+      </div>
+
+      <p>Hover your net over a bird and click to catch. Rarer birds are faster and harder to catch.</p>
+
+      <div class="button-group">
+        <button class="button" id="startGameButton">Play Now</button>
+        <button class="button secondary" id="loginButton">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-page" id="loginPage">
+    <div class="login-content">
+      <h2>Welcome Back</h2>
+      <form id="loginForm" class="login-form">
+        <input type="email" id="emailInput" placeholder="Email" required>
+        <input type="password" id="passwordInput" placeholder="Password" required>
+        <button type="submit" class="login-button">Login</button>
+      </form>
+      <button class="back-button" id="backButton">Back to Landing</button>
+      <div style="margin-top: 18px; text-align: center; color: var(--muted);">
+        <p style="margin: 0 0 14px;">Don't have an account?</p>
+        <button class="signup-button" id="signupButton">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app" style="display: none;">
     <section class="topbar">
       <div class="brand-card">
         <h1>Featherfield Preserve</h1>
@@ -2391,17 +2643,6 @@
 
       resizeCanvas();
       updateHud();
-
-      for (let i = 0; i < 5; i += 1) {
-        spawnBird();
-      }
-
-      showToast(
-        "Welcome, ranger",
-        "Aim from your ranger and launch the soft net. Birds are safely checked, tagged, and released."
-      );
-
-      requestAnimationFrame(gameLoop);
     })();
   </script>
 </body>
