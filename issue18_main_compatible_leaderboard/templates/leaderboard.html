@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranger Board - Featherfield Preserve</title>
+  <style>
+    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; color: #243428; background: linear-gradient(180deg, #caedff 0%, #edf8dc 58%, #c8e7a7 100%); padding: 24px; }
+    .page { width: min(980px, 100%); margin: 0 auto; background: #fffaf0; border: 3px solid rgba(255,255,255,.92); border-radius: 28px; box-shadow: 0 14px 34px rgba(40,70,48,.2); overflow: hidden; }
+    header { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 22px; border-bottom: 1px solid rgba(76,93,65,.13); }
+    h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+    p { margin: 6px 0 0; color: #617060; }
+    a.button { display: inline-block; text-decoration: none; border-radius: 999px; padding: 10px 15px; color: white; background: linear-gradient(180deg, #63ad6d, #397d48); font-weight: 900; white-space: nowrap; }
+    .table-wrap { overflow-x: auto; padding: 18px 22px 24px; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 18px; overflow: hidden; }
+    th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid rgba(76,93,65,.1); }
+    th { background: #eef7e8; color: #356c43; font-size: .88rem; text-transform: uppercase; letter-spacing: .03em; }
+    tr:last-child td { border-bottom: 0; }
+    .rank { font-weight: 900; color: #397d48; }
+    @media (max-width: 650px) { header { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Ranger Board</h1>
+        <p>Public ranger progress from the Featherfield Preserve database.</p>
+      </div>
+      <a class="button" href="/">Back to game</a>
+    </header>
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Ranger</th><th>Level</th><th>Reputation</th><th>Birds Discovered</th><th>Coins</th></tr>
+        </thead>
+        <tbody>
+          {% for player in players %}
+            <tr>
+              <td class="rank">#{{ loop.index }}</td>
+              <td>{{ player["username"] }}</td>
+              <td>{{ player["level"] }}</td>
+              <td>{{ player["reputation"] }}</td>
+              <td>{{ player["birds_discovered"] }}</td>
+              <td>{{ player["coins"] }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6">No ranger progress has been saved yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
