@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Featherfield Preserve - Australian Birds MVP</title>
+
+  <!--
+    Featherfield Preserve - readable single-file MVP
+
+    This version keeps everything in one HTML file for easy classroom/demo use,
+    but the code is divided into labelled sections so it is easier to edit.
+  -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+
+<body>
+  <!-- ============================================================
+       HTML 1. Landing screen
+       ============================================================ -->
+  <div class="landing-page" id="landingPage">
+    <div class="landing-content">
+      <h1>Featherfield Preserve</h1>
+      <p class="subtitle">Australian birds, gentle ranger tools, safe tagging, and conservation field notes.</p>
+
+      <div class="features">
+        <div class="feature-item">
+          <strong>🐦 Catch</strong>
+          <span>Gently net birds to study and release them safely.</span>
+        </div>
+        <div class="feature-item">
+          <strong>📚 Learn</strong>
+          <span>Build your field guide with species and sightings.</span>
+        </div>
+        <div class="feature-item">
+          <strong>🎯 Progress</strong>
+          <span>Earn XP and reputation for better ranger tools.</span>
+        </div>
+        <div class="feature-item">
+          <strong>✨ Explore</strong>
+          <span>Discover rarer birds with careful observation.</span>
+        </div>
+      </div>
+
+      <p>Hover your net over a bird and click to catch. Rarer birds are faster and harder to catch.</p>
+
+      <div class="button-group">
+        <button class="button" id="startGameButton">Play Now</button>
+        <button class="button secondary" id="loginButton">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HTML 2. Prototype login screen
+       ============================================================ -->
+  <div class="login-page" id="loginPage">
+    <div class="login-content">
+      <h2>Welcome Back</h2>
+      <form id="loginForm" class="login-form">
+        <input type="email" id="emailInput" placeholder="Email" required>
+        <input type="password" id="passwordInput" placeholder="Password" required>
+        <button type="submit" class="login-button">Login</button>
+      </form>
+      <button class="back-button" id="backButton">Back to Landing</button>
+      <div style="margin-top: 18px; text-align: center; color: var(--muted);">
+        <p style="margin: 0 0 14px;">Don't have an account?</p>
+        <button class="signup-button" id="signupButton">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HTML 3. Main game app: HUD + canvas
+       ============================================================ -->
+  <main class="app" style="display: none;">
+    <section class="topbar">
+      <div class="brand-card">
+        <h1>Featherfield Preserve</h1>
+        <p>Australian birds, gentle ranger tools, field notes, safe tagging, and release.</p>
+      </div>
+
+      <div class="stats-card">
+        <span class="pill">Lv. <span id="levelText">1</span></span>
+
+        <span class="pill">
+          XP
+          <span class="xp-shell">
+            <span class="xp-fill" id="xpFill"></span>
+          </span>
+          <span id="xpText">0 / 75</span>
+        </span>
+
+        <span class="pill">🪙 <span id="coinText">0</span></span>
+        <span class="pill">🌿 Rep <span id="repText">0</span></span>
+        <span class="pill">Net: <span id="netText">Starter</span></span>
+
+        <button class="button" id="storeButton">Store</button>
+        <button class="button secondary" id="guideButton">Field Guide</button>
+        <button class="button secondary" id="habitatButton">Habitat: Meadow</button>
+        <button class="button warn" id="resetButton">Reset</button>
+      </div>
+    </section>
+
+    <section class="game-shell">
+      <canvas id="gameCanvas" aria-label="Australian bird preserve game canvas"></canvas>
+
+      <div class="toast-stack" id="toastStack"></div>
+
+      <div class="hint-card" id="hintCard">
+        <button class="hint-close-button" id="hintCloseButton" type="button" aria-label="Close how to play help">×</button>
+        <strong>How to play</strong>
+        <span>
+          Aim from the ranger and click/tap to launch the soft net. Use Habitat to change the scenery.
+          Catchable birds are safely checked, tagged, and released. Special conservation birds are observed instead of captured.
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================================
+       HTML 4. Shared modal used by the store and field guide
+       ============================================================ -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modalTitle">Modal</h2>
+        <button class="close-button" id="closeModalButton" aria-label="Close modal">×</button>
+      </div>
+
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
